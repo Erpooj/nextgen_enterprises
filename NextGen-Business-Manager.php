@@ -1,0 +1,4329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NextGen Business Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.7.1/firebase-database-compat.js"></script>
+<style>
+:root {
+  --primary: #1a6ef5;
+  --primary-light: #e8f0fe;
+  --primary-dark: #1254cc;
+  --accent: #00d4aa;
+  --accent-light: #e0faf4;
+  --sidebar-bg: #0f172a;
+  --sidebar-text: #94a3b8;
+  --sidebar-active: #1a6ef5;
+  --topbar-bg: #ffffff;
+  --bg: #f1f5fb;
+  --card-bg: #ffffff;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --border: #e2e8f0;
+  --danger: #ef4444;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --dtdc: #e67e22;
+  --trackon: #1a6ef5;
+  --shadow: 0 2px 12px rgba(15,23,42,0.08);
+  --shadow-lg: 0 8px 32px rgba(15,23,42,0.12);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --font: 'Sora', sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
+
+/* ---- AUTH ---- */
+#auth-screen {
+  position: fixed; inset: 0; background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%);
+  display: flex; align-items: center; justify-content: center; z-index: 9999;
+  transition: opacity 0.4s;
+}
+.auth-card {
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px; padding: 48px; width: 420px; backdrop-filter: blur(20px);
+  box-shadow: 0 32px 80px rgba(0,0,0,0.4);
+}
+.auth-logo { text-align: center; margin-bottom: 32px; }
+.auth-logo .logo-icon {
+  width: 64px; height: 64px; background: var(--primary); border-radius: 18px;
+  display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;
+  font-size: 28px; box-shadow: 0 8px 24px rgba(26,110,245,0.4);
+}
+.auth-logo h1 { color: #fff; font-size: 22px; font-weight: 700; }
+.auth-logo p { color: rgba(255,255,255,0.5); font-size: 13px; margin-top: 4px; }
+.auth-field { margin-bottom: 16px; }
+.auth-field label { display: block; color: rgba(255,255,255,0.7); font-size: 13px; font-weight: 500; margin-bottom: 8px; }
+.auth-field input {
+  width: 100%; padding: 12px 16px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 10px; color: #fff; font-family: var(--font); font-size: 14px; outline: none; transition: border 0.2s;
+}
+.auth-field input:focus { border-color: var(--primary); background: rgba(26,110,245,0.1); }
+.auth-field input::placeholder { color: rgba(255,255,255,0.3); }
+.auth-btn {
+  width: 100%; padding: 13px; background: var(--primary); border: none; border-radius: 10px;
+  color: #fff; font-family: var(--font); font-size: 15px; font-weight: 600; cursor: pointer;
+  margin-top: 8px; transition: all 0.2s; letter-spacing: 0.3px;
+}
+.auth-btn:hover { background: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 8px 20px rgba(26,110,245,0.4); }
+.auth-error { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; padding: 10px 14px; color: #fca5a5; font-size: 13px; margin-bottom: 12px; display: none; }
+.auth-note { margin-top: 18px; color: rgba(255,255,255,0.6); font-size: 12px; line-height: 1.5; }
+.auth-panel { display: none; }
+.auth-panel.active { display: block; }
+.auth-switch {
+  display:flex; gap:8px; margin:20px 0 18px; padding:6px; border-radius:12px;
+  background: rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08);
+}
+.auth-switch button {
+  flex:1; border:0; border-radius:10px; background:transparent; color:rgba(255,255,255,0.7);
+  font-family: var(--font); font-size: 13px; font-weight: 600; padding:10px 12px; cursor:pointer; transition:all 0.2s;
+}
+.auth-switch button.active {
+  background: rgba(26,110,245,0.25); color:#fff; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+}
+.otp-delivery {
+  display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:10px; margin:14px 0 10px;
+}
+.otp-option {
+  border:1px solid rgba(255,255,255,0.12); border-radius:12px; padding:12px; cursor:pointer;
+  background: rgba(255,255,255,0.05); color:#fff; transition:all 0.2s;
+}
+.otp-option input { display:none; }
+.otp-option.active { border-color: rgba(26,110,245,0.9); background: rgba(26,110,245,0.16); }
+.otp-preview {
+  display:none; margin-top:12px; padding:12px 14px; border-radius:10px;
+  background: rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.28); color:#065f46; font-size:13px; font-weight:700;
+}
+.auth-inline-link {
+  color:#93c5fd; cursor:pointer; text-decoration:underline; text-underline-offset:3px;
+}
+
+/* ---- SIDEBAR ---- */
+#sidebar {
+  width: 240px; background: var(--sidebar-bg); height: 100vh; display: flex; flex-direction: column;
+  position: fixed; left: 0; top: 0; z-index: 100; transition: width 0.3s;
+}
+.sidebar-brand {
+  padding: 20px; display: flex; align-items: center; gap: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.brand-icon {
+  width: 38px; height: 38px; background: var(--primary); border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
+}
+.brand-text h2 { color: #fff; font-size: 14px; font-weight: 700; }
+.brand-text p { color: rgba(255,255,255,0.4); font-size: 10px; letter-spacing: 1px; text-transform: uppercase; }
+.sidebar-nav { flex: 1; overflow-y: auto; padding: 12px 0; }
+.nav-section-label {
+  padding: 12px 20px 6px; color: rgba(255,255,255,0.25); font-size: 10px;
+  letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 12px; padding: 10px 20px;
+  color: var(--sidebar-text); cursor: pointer; transition: all 0.2s;
+  font-size: 13.5px; font-weight: 500; border-left: 3px solid transparent;
+  position: relative; user-select: none;
+}
+.nav-item:hover { color: #fff; background: rgba(255,255,255,0.05); }
+.nav-item.active { color: #fff; background: rgba(26,110,245,0.15); border-left-color: var(--primary); }
+.nav-item .nav-icon { width: 20px; text-align: center; font-size: 16px; flex-shrink: 0; }
+.nav-item .badge {
+  margin-left: auto; background: var(--primary); color: #fff; font-size: 10px;
+  font-weight: 600; padding: 2px 7px; border-radius: 20px;
+}
+.nav-item.admin-only { display: none; }
+.sidebar-footer {
+  padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.07);
+}
+.sidebar-user { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 8px; border-radius: 8px; transition: background 0.2s; }
+.sidebar-user:hover { background: rgba(255,255,255,0.05); }
+.user-avatar {
+  width: 34px; height: 34px; border-radius: 50%; background: var(--primary);
+  display: flex; align-items: center; justify-content: center; color: #fff;
+  font-size: 13px; font-weight: 700; flex-shrink: 0;
+}
+.user-info h4 { color: #fff; font-size: 13px; font-weight: 600; }
+.user-info p { color: rgba(255,255,255,0.4); font-size: 11px; }
+
+/* ---- MAIN ---- */
+#main {
+  margin-left: 240px; flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+}
+#topbar {
+  background: var(--topbar-bg); border-bottom: 1px solid var(--border); padding: 0 28px;
+  height: 60px; display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 50;
+}
+.topbar-title h1 { font-size: 17px; font-weight: 700; color: var(--text); }
+.topbar-title p { font-size: 12px; color: var(--text-muted); }
+.topbar-right { display: flex; align-items: center; gap: 16px; }
+.topbar-stat {
+  display: flex; align-items: center; gap: 8px; padding: 7px 14px;
+  background: var(--bg); border-radius: 8px; font-size: 12px;
+}
+.topbar-stat .dot { width: 8px; height: 8px; border-radius: 50%; }
+.topbar-stat .dot.green { background: var(--success); box-shadow: 0 0 6px var(--success); }
+.topbar-logout {
+  padding: 7px 16px; background: var(--danger); color: #fff; border: none;
+  border-radius: 8px; font-family: var(--font); font-size: 12px; font-weight: 600; cursor: pointer;
+  transition: all 0.2s;
+}
+.topbar-logout:hover { background: #dc2626; }
+
+#content { flex: 1; overflow-y: auto; padding: 28px; }
+
+/* ---- PAGES ---- */
+.page { display: none; }
+.page.active { display: block; }
+.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+.page-header h2 { font-size: 20px; font-weight: 700; }
+.page-header p { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+/* ---- CARDS ---- */
+.cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.mini-stats-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:16px; margin-bottom:24px; }
+.stat-card {
+  background: var(--card-bg); border-radius: var(--radius); padding: 20px;
+  border: 1px solid var(--border); box-shadow: var(--shadow); transition: transform 0.2s, box-shadow 0.2s;
+}
+.stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.stat-card .card-icon {
+  width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center;
+  justify-content: center; font-size: 20px; margin-bottom: 14px;
+}
+.stat-card .card-icon.blue { background: var(--primary-light); }
+.stat-card .card-icon.green { background: #d1fae5; }
+.stat-card .card-icon.orange { background: #fff3cd; }
+.stat-card .card-icon.purple { background: #ede9fe; }
+.stat-card .card-icon.red { background: #fee2e2; }
+.stat-card .card-icon.teal { background: #ccfbf1; }
+.stat-card h3 { font-size: 28px; font-weight: 700; color: var(--text); }
+.stat-card p { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+.stat-card .trend { font-size: 11px; margin-top: 8px; font-weight: 600; }
+.stat-card .trend.up { color: var(--success); }
+.stat-card .trend.down { color: var(--danger); }
+
+/* ---- TABLE ---- */
+.table-card {
+  background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--border);
+  box-shadow: var(--shadow); overflow: hidden;
+}
+.table-toolbar {
+  padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex;
+  align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+}
+.table-toolbar h3 { font-size: 15px; font-weight: 700; }
+.search-input {
+  padding: 8px 14px; border: 1px solid var(--border); border-radius: 8px;
+  font-family: var(--font); font-size: 13px; background: var(--bg); outline: none;
+  width: 220px; transition: border 0.2s;
+}
+.search-input:focus { border-color: var(--primary); background: #fff; }
+.filter-select {
+  padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px;
+  font-family: var(--font); font-size: 13px; background: var(--bg); outline: none; cursor: pointer;
+}
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  padding: 12px 16px; text-align: left; font-size: 11px; font-weight: 600;
+  color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px;
+  background: #f8fafc; border-bottom: 1px solid var(--border);
+}
+tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+tbody tr:hover { background: #f8fafc; }
+tbody tr:last-child { border-bottom: none; }
+td { padding: 13px 16px; font-size: 13.5px; }
+.badge {
+  display: inline-block; padding: 3px 10px; border-radius: 20px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.3px;
+}
+.badge-pending { background: #fff3cd; color: #92400e; }
+.badge-delivered { background: #d1fae5; color: #065f46; }
+.badge-out-for-delivery { background: #dbeafe; color: #1d4ed8; }
+.badge-dtdc { background: #fff3cd; color: #92400e; }
+.badge-trackon { background: var(--primary-light); color: #1254cc; }
+.badge-admin { background: #ede9fe; color: #5b21b6; }
+.badge-staff { background: #dbeafe; color: #1e40af; }
+.badge-available { background: #d1fae5; color: #065f46; }
+.badge-unavailable { background: #fee2e2; color: #991b1b; }
+
+/* ---- BUTTONS ---- */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px;
+  border-radius: 8px; font-family: var(--font); font-size: 13px; font-weight: 600;
+  cursor: pointer; border: none; transition: all 0.2s; text-decoration: none;
+}
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
+.btn-success { background: var(--success); color: #fff; }
+.btn-success:hover { background: #059669; }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-danger:hover { background: #dc2626; }
+.btn-outline {
+  background: transparent; color: var(--text); border: 1px solid var(--border);
+}
+.btn-outline:hover { background: var(--bg); border-color: var(--primary); color: var(--primary); }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+.btn-icon { padding: 7px; width: 32px; height: 32px; justify-content: center; }
+
+/* ---- FORMS ---- */
+.form-card {
+  background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--border);
+  box-shadow: var(--shadow); padding: 24px; margin-bottom: 24px;
+}
+.form-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group label { font-size: 12px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.3px; }
+.form-control {
+  padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px;
+  font-family: var(--font); font-size: 13.5px; background: #fff; outline: none;
+  transition: border 0.2s, box-shadow 0.2s; color: var(--text);
+}
+.form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(26,110,245,0.1); }
+.form-actions { display: flex; gap: 10px; margin-top: 20px; }
+
+/* ---- MODAL ---- */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(15,23,42,0.6); z-index: 1000;
+  display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);
+  opacity: 0; pointer-events: none; transition: opacity 0.3s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal {
+  background: #fff; border-radius: 16px; padding: 28px; width: 520px; max-width: 95vw;
+  max-height: 85vh; overflow-y: auto; box-shadow: var(--shadow-lg);
+  transform: scale(0.95); transition: transform 0.3s;
+}
+.modal-overlay.open .modal { transform: scale(1); }
+.modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+.modal-header h3 { font-size: 18px; font-weight: 700; }
+.modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted); padding: 4px; border-radius: 6px; }
+.modal-close:hover { background: var(--bg); color: var(--text); }
+
+/* ---- CHARTS ---- */
+.charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+.chart-card {
+  background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--border);
+  box-shadow: var(--shadow); padding: 20px;
+}
+.chart-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 16px; color: var(--text); }
+.chart-wrap { position: relative; height: 200px; }
+
+/* ---- COURIER COMPARE ---- */
+.courier-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+.courier-card {
+  border-radius: var(--radius); padding: 20px; border: 2px solid;
+}
+.courier-card.dtdc { border-color: var(--dtdc); background: linear-gradient(135deg, #fff9f0, #fff); }
+.courier-card.trackon { border-color: var(--trackon); background: linear-gradient(135deg, #f0f6ff, #fff); }
+.courier-card .cc-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.courier-card .cc-badge {
+  padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+}
+.courier-card.dtdc .cc-badge { background: var(--dtdc); color: #fff; }
+.courier-card.trackon .cc-badge { background: var(--trackon); color: #fff; }
+.courier-card .cc-num { font-size: 32px; font-weight: 700; }
+.courier-card.dtdc .cc-num { color: var(--dtdc); }
+.courier-card.trackon .cc-num { color: var(--trackon); }
+.courier-card .cc-label { font-size: 12px; color: var(--text-muted); }
+
+/* ---- PROGRESS BAR ---- */
+.progress-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-top: 8px; }
+.progress-bar .fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+.fill-blue { background: var(--primary); }
+.fill-orange { background: var(--dtdc); }
+.fill-green { background: var(--success); }
+
+/* ---- PINCODE ---- */
+.pincode-result { margin-top: 20px; display: none; }
+.pincode-summary {
+  margin-top: 16px; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--border);
+  background: linear-gradient(135deg, #f8fbff, #f8fafc); font-size: 13px; color: var(--text-muted);
+}
+.pincode-row {
+  display: flex; align-items: center; justify-content: space-between; padding: 14px 18px;
+  border-radius: 10px; margin-bottom: 10px; border: 1px solid var(--border);
+}
+.pincode-row .courier-name { font-size: 14px; font-weight: 600; }
+.pincode-row .avail { font-size: 13px; font-weight: 600; }
+.pincode-row.available { background: #f0fdf4; border-color: #bbf7d0; }
+.pincode-row.unavailable { background: #fef2f2; border-color: #fecaca; }
+.pincode-meta { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
+
+/* ---- SCANNER ---- */
+#scanner-video-wrap {
+  display: none; background: #000; border-radius: 12px; overflow: hidden;
+  position: relative; height: 200px; margin-top: 12px;
+}
+#scanner-video-wrap video { width: 100%; height: 100%; object-fit: cover; }
+.scanner-line {
+  position: absolute; left: 0; right: 0; height: 2px; background: var(--accent);
+  animation: scan 2s linear infinite; box-shadow: 0 0 8px var(--accent);
+}
+@keyframes scan { 0% { top: 10%; } 100% { top: 90%; } }
+
+/* ---- QUOTATION ---- */
+.quote-table { width: 100%; border-collapse: collapse; }
+.quote-table th, .quote-table td { border: 1px solid var(--border); padding: 10px 12px; font-size: 13px; }
+.quote-table th { background: #f8fafc; font-weight: 600; }
+.quote-total { text-align: right; padding: 12px 16px; font-size: 16px; font-weight: 700; color: var(--primary); }
+
+/* ---- FINANCE ---- */
+.finance-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+.finance-card {
+  background: var(--card-bg); border-radius: var(--radius); padding: 20px;
+  border: 1px solid var(--border); box-shadow: var(--shadow);
+}
+.finance-card .fc-label { font-size: 11px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.8px; text-transform: uppercase; }
+.finance-card .fc-value { font-size: 26px; font-weight: 700; margin-top: 6px; }
+.finance-card .fc-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+.finance-card.profit .fc-value { color: var(--success); }
+.finance-card.payable .fc-value { color: var(--danger); }
+
+/* ---- CALCULATOR ---- */
+.calc-shell {
+  max-width: 980px; margin: 0 auto;
+}
+.calc-hero {
+  background: linear-gradient(135deg, #f8fbff 0%, #eef6ff 45%, #f7fffc 100%);
+  border: 1px solid rgba(26,110,245,0.12); border-radius: 24px; padding: 28px;
+  box-shadow: 0 18px 50px rgba(15,23,42,0.08);
+}
+.calc-head {
+  display:flex; justify-content:space-between; align-items:flex-start; gap:20px; margin-bottom:22px; flex-wrap:wrap;
+}
+.calc-head h3 { font-size: 24px; font-weight: 700; margin-bottom: 6px; }
+.calc-head p { font-size: 13px; color: var(--text-muted); max-width: 560px; }
+.calc-pill {
+  display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border-radius:999px;
+  background:#fff; border:1px solid rgba(26,110,245,0.12); font-size:12px; font-weight:600; color:var(--primary);
+}
+.calc-mode-switch {
+  display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px; margin-bottom:22px;
+}
+.calc-radio {
+  position:relative; border:1px solid var(--border); border-radius:18px; background:#fff;
+  box-shadow: var(--shadow); transition:all 0.2s ease; overflow:hidden;
+}
+.calc-radio:hover { transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+.calc-radio input { position:absolute; opacity:0; pointer-events:none; }
+.calc-radio label { display:block; padding:16px 18px; cursor:pointer; }
+.calc-radio strong { display:block; font-size:15px; margin-bottom:4px; }
+.calc-radio span { font-size:12px; color:var(--text-muted); }
+.calc-radio input:checked + label {
+  background: linear-gradient(135deg, rgba(26,110,245,0.12), rgba(0,212,170,0.08));
+}
+.calc-fields {
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px;
+}
+.calc-actions {
+  display:flex; gap:12px; margin-top:22px; flex-wrap:wrap;
+}
+.calc-gradient-btn {
+  background: linear-gradient(135deg, #1a6ef5 0%, #00b3ff 100%);
+  color:#fff;
+}
+.calc-gradient-btn:hover {
+  transform: translateY(-1px); box-shadow: 0 12px 24px rgba(26,110,245,0.25);
+}
+.calc-error {
+  display:none; margin-top:16px; padding:12px 14px; border-radius:12px;
+  background:#fff1f2; border:1px solid #fecdd3; color:#be123c; font-size:13px; font-weight:600;
+}
+.calc-result {
+  background: linear-gradient(135deg, var(--primary-light), #fff);
+  border: 1px solid rgba(26,110,245,0.18); border-radius: 20px; padding: 22px;
+  margin-top: 18px; display: none; box-shadow: var(--shadow);
+}
+.calc-result-top {
+  display:flex; justify-content:space-between; gap:16px; align-items:flex-start; margin-bottom:16px; flex-wrap:wrap;
+}
+.calc-result-meta {
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px; margin-bottom:16px;
+}
+.calc-meta-box {
+  background:#fff; border:1px solid var(--border); border-radius:14px; padding:14px 16px;
+}
+.calc-meta-box small {
+  display:block; font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:6px;
+}
+.calc-meta-box strong { font-size:15px; color:var(--text); }
+.calc-rates { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+.calc-rate-box { border-radius: 16px; padding: 18px; color: #fff; }
+.calc-rate-box.dtdc { background: linear-gradient(135deg, #e67e22, #f59e0b); }
+.calc-rate-box.sell { background: linear-gradient(135deg, #10b981, #14b8a6); }
+.calc-rate-box.trackon { background: linear-gradient(135deg, #1a6ef5, #0ea5e9); }
+.calc-rate-box .rate-val { font-size: 30px; font-weight: 700; }
+.calc-rate-box .rate-label { font-size: 11px; opacity: 0.9; font-weight: 600; margin-top: 4px; }
+.calc-warning {
+  display:none; margin-top:14px; padding:14px 16px; border-radius:14px;
+  background:#fff7ed; border:1px solid #fdba74; color:#9a3412; font-size:12.5px; line-height:1.55;
+}
+.calc-warning strong { display:block; margin-bottom:4px; font-size:13px; }
+
+/* ---- DELIVERY INVENTORY ---- */
+.delivery-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+.delivery-stat-card {
+  border-radius: var(--radius); padding: 20px; border: 2px solid;
+}
+.delivery-stat-card.dtdc { border-color: var(--dtdc); background: linear-gradient(135deg, #fff9f0, #fff); }
+.delivery-stat-card.trackon { border-color: var(--trackon); background: linear-gradient(135deg, #f0f6ff, #fff); }
+.delivery-stat-card h4 { font-size: 12px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 12px; }
+.delivery-stat-card.dtdc h4 { color: var(--dtdc); }
+.delivery-stat-card.trackon h4 { color: var(--trackon); }
+.delivery-nums { display: flex; gap: 16px; }
+.delivery-num .dn-val { font-size: 28px; font-weight: 700; }
+.delivery-num .dn-label { font-size: 11px; color: var(--text-muted); }
+.delivery-actions {
+  display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+}
+.delivery-upload {
+  display:none;
+}
+.delivery-helper {
+  margin-top: 14px; padding: 14px 16px; border-radius: 12px; border: 1px dashed var(--border);
+  background: linear-gradient(135deg, #f8fbff, #f8fafc); font-size: 13px; color: var(--text-muted);
+}
+.delivery-helper strong { color: var(--text); }
+.delivery-status-box {
+  display:none; margin-top:14px; padding:12px 14px; border-radius:12px; border:1px solid var(--border);
+  background:#fff; font-size:13px; line-height:1.6;
+}
+.signature-cell {
+  min-width: 140px; height: 42px; border-bottom: 1px solid #cbd5e1;
+}
+
+/* ---- PROFILE ---- */
+.profile-hero {
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+  border-radius: var(--radius); padding: 28px; margin-bottom: 20px; display: flex; align-items: center; gap: 20px;
+}
+.profile-avatar {
+  width: 72px; height: 72px; background: var(--primary); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-size: 28px;
+  font-weight: 700; color: #fff; border: 3px solid rgba(255,255,255,0.2);
+}
+.profile-hero h2 { color: #fff; font-size: 22px; font-weight: 700; }
+.profile-hero p { color: rgba(255,255,255,0.6); font-size: 13px; margin-top: 4px; }
+.profile-hero .badge { margin-top: 8px; }
+
+/* ---- TOAST ---- */
+#toast {
+  position: fixed; bottom: 24px; right: 24px; background: #0f172a; color: #fff;
+  padding: 12px 20px; border-radius: 10px; font-size: 13px; font-weight: 500;
+  z-index: 9998; transform: translateY(80px); opacity: 0; transition: all 0.3s;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 8px; max-width: 320px;
+}
+#toast.show { transform: translateY(0); opacity: 1; }
+#toast.success { background: var(--success); }
+#toast.error { background: var(--danger); }
+
+/* ---- PRINT ---- */
+@media print {
+  #sidebar, #topbar, .btn, .form-card { display: none !important; }
+  #main { margin-left: 0; }
+  #content { padding: 0; }
+}
+
+/* ---- SCROLLBAR ---- */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="logo-icon">📦</div>
+      <h1>NextGen Business Manager</h1>
+      <p>Courier Management System v2.0</p>
+    </div>
+    <div class="auth-switch" id="auth-switch" style="display:none;">
+      <button id="auth-tab-login" class="active" onclick="showAuthPanel('login')">Login</button>
+      <button id="auth-tab-register" onclick="showAuthPanel('register')">Register Admin</button>
+    </div>
+
+    <div class="auth-panel active" id="auth-panel-login">
+      <div class="auth-error" id="auth-error">Invalid username or password</div>
+      <div class="auth-field">
+        <label>Username</label>
+        <input type="text" id="login-user" placeholder="Enter username" autocomplete="off">
+      </div>
+      <div class="auth-field">
+        <label>Password</label>
+        <input type="password" id="login-pass" placeholder="Enter password">
+      </div>
+      <button class="auth-btn" onclick="doLogin()">Sign In</button>
+      <p class="auth-note" id="auth-login-note">Admin login requires OTP verification after password check.</p>
+    </div>
+
+    <div class="auth-panel" id="auth-panel-register">
+      <div class="auth-error" id="register-error">Please complete all required fields</div>
+      <div class="auth-field">
+        <label>Admin Name</label>
+        <input type="text" id="reg-admin-name" placeholder="Enter admin full name" autocomplete="off">
+      </div>
+      <div class="auth-field">
+        <label>Username</label>
+        <input type="text" id="reg-admin-user" placeholder="Choose admin username" autocomplete="off">
+      </div>
+      <div class="auth-field">
+        <label>Password</label>
+        <input type="password" id="reg-admin-pass" placeholder="Create strong password">
+      </div>
+      <div class="auth-field">
+        <label>Admin Email</label>
+        <input type="email" id="reg-admin-email" placeholder="admin@example.com" autocomplete="off">
+      </div>
+      <div class="auth-field">
+        <label>Admin Phone</label>
+        <input type="text" id="reg-admin-phone" placeholder="10-digit phone number" autocomplete="off">
+      </div>
+      <button class="auth-btn" onclick="registerAdmin()">Create Admin</button>
+      <p class="auth-note">This setup replaces the old default admin/staff logins and saves your new admin in the local database.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon">📦</div>
+    <div class="brand-text">
+      <h2>NextGen</h2>
+      <p>Business Manager</p>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Main</div>
+    <div class="nav-item active" onclick="navTo('dashboard')">
+      <span class="nav-icon">🏠</span> Dashboard
+    </div>
+    <div class="nav-section-label">Operations</div>
+    <div class="nav-item" onclick="navTo('shipments')">
+      <span class="nav-icon">📦</span> Shipments
+    </div>
+    <div class="nav-item admin-only" onclick="navTo('customers')">
+      <span class="nav-icon">👥</span> Customers
+    </div>
+    <div class="nav-item admin-only" onclick="navTo('quotation')">
+      <span class="nav-icon">📋</span> Quotations
+    </div>
+    <div class="nav-item" onclick="navTo('delivery')">
+      <span class="nav-icon">🚚</span> My Delivery
+    </div>
+    <div class="nav-item" onclick="navTo('booking')">
+      <span class="nav-icon">📅</span> My Booking
+    </div>
+    <div class="nav-section-label">Tools</div>
+    <div class="nav-item" onclick="navTo('pincode')">
+      <span class="nav-icon">📍</span> Pincode Check
+    </div>
+    <div class="nav-item" onclick="navTo('calculator')">
+      <span class="nav-icon">🧮</span> Rate Calculator
+    </div>
+    <div class="nav-section-label admin-only">Admin</div>
+    <div class="nav-item admin-only" onclick="navTo('employees')">
+      <span class="nav-icon">👔</span> Manage Employee
+    </div>
+    <div class="nav-item admin-only" onclick="navTo('finance')">
+      <span class="nav-icon">💰</span> Finance
+    </div>
+    <div class="nav-section-label">Account</div>
+    <div class="nav-item" onclick="navTo('profile')">
+      <span class="nav-icon">⚙️</span> Profile
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="sidebar-user" onclick="navTo('profile')">
+      <div class="user-avatar" id="sb-avatar">A</div>
+      <div class="user-info">
+        <h4 id="sb-name">Admin User</h4>
+        <p id="sb-role">Administrator</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+  <div id="topbar">
+    <div class="topbar-title">
+      <h1 id="topbar-title">Dashboard</h1>
+      <p id="topbar-sub">Welcome back!</p>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-stat">
+        <div class="dot green"></div>
+        <span style="font-size:12px;font-weight:500;" id="live-time">--:--</span>
+      </div>
+      <div class="topbar-stat" style="font-size:12px;font-weight:500;" id="topbar-date">---</div>
+      <button class="topbar-logout" onclick="doLogout()">↩ Logout</button>
+    </div>
+  </div>
+
+  <div id="content">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <div>
+          <h2>Dashboard</h2>
+          <p>Overview of today's operations</p>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-outline btn-sm" onclick="refreshDashboard()">🔄 Refresh</button>
+          <button class="btn btn-primary btn-sm" onclick="navTo('shipments')">+ New Shipment</button>
+        </div>
+      </div>
+
+      <div class="cards-grid" id="dash-cards">
+        <div class="stat-card">
+          <div class="card-icon blue">📦</div>
+          <h3 id="dc-total">0</h3>
+          <p>Total Shipments</p>
+          <div class="trend up" id="dc-total-trend">↑ Loading...</div>
+        </div>
+        <div class="stat-card">
+          <div class="card-icon green">✅</div>
+          <h3 id="dc-delivered">0</h3>
+          <p>Delivered Today</p>
+          <div class="trend up" id="dc-del-trend">↑ Loading...</div>
+        </div>
+        <div class="stat-card">
+          <div class="card-icon orange">📋</div>
+          <h3 id="dc-quotes">0</h3>
+          <p>Quotations</p>
+          <div class="trend up">↑ Active</div>
+        </div>
+        <div class="stat-card">
+          <div class="card-icon purple">👥</div>
+          <h3 id="dc-customers">0</h3>
+          <p>Customers</p>
+          <div class="trend up">↑ Registered</div>
+        </div>
+        <div class="stat-card admin-card" style="display:none;">
+          <div class="card-icon teal">💰</div>
+          <h3 id="dc-profit">₹0</h3>
+          <p>Today's Profit</p>
+          <div class="trend up" id="dc-profit-trend">↑ +12% vs yesterday</div>
+        </div>
+        <div class="stat-card">
+          <div class="card-icon orange">🚀</div>
+          <h3 id="dc-booking-dtdc">0</h3>
+          <p>DTDC Bookings Today</p>
+          <div class="trend up">↑ Active</div>
+        </div>
+        <div class="stat-card">
+          <div class="card-icon blue">📌</div>
+          <h3 id="dc-booking-trackon">0</h3>
+          <p>Trackon Bookings Today</p>
+          <div class="trend up">↑ Active</div>
+        </div>
+      </div>
+
+      <div class="courier-cards">
+        <div class="courier-card dtdc">
+          <div class="cc-header">
+            <div class="cc-badge">DTDC</div>
+            <span style="font-size:12px;color:var(--text-muted);">Today's shipments</span>
+          </div>
+          <div class="cc-num" id="cc-dtdc">0</div>
+          <div class="cc-label">Shipments</div>
+          <div class="progress-bar" style="margin-top:12px;"><div class="fill fill-orange" id="cc-dtdc-bar" style="width:0%"></div></div>
+        </div>
+        <div class="courier-card trackon">
+          <div class="cc-header">
+            <div class="cc-badge">Trackon</div>
+            <span style="font-size:12px;color:var(--text-muted);">Today's shipments</span>
+          </div>
+          <div class="cc-num" id="cc-trackon">0</div>
+          <div class="cc-label">Shipments</div>
+          <div class="progress-bar" style="margin-top:12px;"><div class="fill fill-blue" id="cc-trackon-bar" style="width:0%"></div></div>
+        </div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="chart-card">
+          <h3>📊 Weekly Shipments</h3>
+          <div class="chart-wrap"><canvas id="weeklyChart" role="img" aria-label="Weekly shipments bar chart">Weekly shipment data</canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>🥧 Courier Split</h3>
+          <div class="chart-wrap"><canvas id="splitChart" role="img" aria-label="Courier split pie chart">DTDC vs Trackon split</canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SHIPMENTS -->
+    <div class="page" id="page-shipments">
+      <div class="page-header">
+        <div><h2>Shipment Management</h2><p>Add, track & manage all shipments</p></div>
+        <button class="btn btn-primary" onclick="openModal('modal-add-shipment')">+ Add Shipment</button>
+      </div>
+      <div class="table-card">
+        <div class="table-toolbar">
+          <h3>All Shipments <span id="ship-count" style="color:var(--text-muted);font-weight:400;font-size:13px;"></span></h3>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <input type="text" class="search-input" placeholder="🔍 Search tracking ID..." oninput="filterShipments(this.value)">
+            <select class="filter-select" onchange="filterShipmentsCourier(this.value)">
+              <option value="">All Couriers</option>
+              <option value="DTDC">DTDC</option>
+              <option value="Trackon">Trackon</option>
+            </select>
+            <select class="filter-select" onchange="filterShipmentsStatus(this.value)">
+              <option value="">All Status</option>
+              <option value="Pending">Pending</option>
+              <option value="Out for Delivery">Out for Delivery</option>
+              <option value="Delivered">Delivered</option>
+            </select>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead><tr>
+              <th>Tracking ID</th><th>Customer</th><th>Destination</th>
+              <th>Weight</th><th>Courier</th><th>Date</th><th>Status</th><th>Action</th>
+            </tr></thead>
+            <tbody id="shipments-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- CUSTOMERS -->
+    <div class="page" id="page-customers">
+      <div class="page-header">
+        <div><h2>Customer Management</h2><p>Manage your customer database</p></div>
+        <button class="btn btn-primary" onclick="openModal('modal-add-customer')">+ Add Customer</button>
+      </div>
+      <div class="table-card">
+        <div class="table-toolbar">
+          <h3>Customers <span id="cust-count" style="color:var(--text-muted);font-weight:400;font-size:13px;"></span></h3>
+          <input type="text" class="search-input" placeholder="🔍 Search customers..." oninput="filterCustomers(this.value)">
+        </div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead><tr>
+              <th>Name</th><th>Phone</th><th>Address</th><th>City</th><th>Pincode</th><th>Action</th>
+            </tr></thead>
+            <tbody id="customers-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUOTATION -->
+    <div class="page" id="page-quotation">
+      <div class="page-header">
+        <div><h2>Quotation System</h2><p>Create & manage quotations</p></div>
+        <button class="btn btn-primary" onclick="openNewQuote()">+ New Quotation</button>
+      </div>
+      <div class="table-card">
+        <div class="table-toolbar">
+          <h3>Quotations <span id="quote-count" style="color:var(--text-muted);font-weight:400;font-size:13px;"></span></h3>
+          <input type="text" class="search-input" placeholder="🔍 Search..." oninput="filterQuotations(this.value)">
+        </div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead><tr>
+              <th>Quote #</th><th>Customer</th><th>Date</th><th>Items</th><th>Total</th><th>Action</th>
+            </tr></thead>
+            <tbody id="quotations-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- DELIVERY -->
+    <div class="page" id="page-delivery">
+      <div class="page-header">
+        <div><h2>My Delivery</h2><p>Today's delivery inventory & tracking</p></div>
+        <div class="delivery-actions">
+          <button class="btn btn-primary" onclick="toggleScanner()">📷 Live Scan</button>
+          <button class="btn btn-outline" onclick="openDeliveryCamera()">📱 Phone Camera / Upload</button>
+          <button class="btn btn-outline" onclick="exportDeliverySheet()">📄 Export Excel Sheet</button>
+        </div>
+      </div>
+      <input type="file" id="delivery-image-input" class="delivery-upload" accept="image/*" capture="environment" onchange="handleDeliveryImageUpload(event)">
+
+      <div class="delivery-stats">
+        <div class="delivery-stat-card dtdc">
+          <h4>DTDC Delivery</h4>
+          <div class="delivery-nums">
+            <div class="delivery-num">
+              <div class="dn-val" id="del-dtdc-total" style="color:var(--dtdc)">0</div>
+              <div class="dn-label">Total</div>
+            </div>
+            <div class="delivery-num">
+              <div class="dn-val" id="del-dtdc-done" style="color:var(--success)">0</div>
+              <div class="dn-label">Delivered</div>
+            </div>
+            <div class="delivery-num">
+              <div class="dn-val" id="del-dtdc-rem" style="color:var(--danger)">0</div>
+              <div class="dn-label">Remaining</div>
+            </div>
+          </div>
+          <div class="progress-bar" style="margin-top:12px;"><div class="fill fill-orange" id="del-dtdc-bar" style="width:0%"></div></div>
+        </div>
+        <div class="delivery-stat-card trackon">
+          <h4>Trackon Delivery</h4>
+          <div class="delivery-nums">
+            <div class="delivery-num">
+              <div class="dn-val" id="del-trac-total" style="color:var(--trackon)">0</div>
+              <div class="dn-label">Total</div>
+            </div>
+            <div class="delivery-num">
+              <div class="dn-val" id="del-trac-done" style="color:var(--success)">0</div>
+              <div class="dn-label">Delivered</div>
+            </div>
+            <div class="delivery-num">
+              <div class="dn-val" id="del-trac-rem" style="color:var(--danger)">0</div>
+              <div class="dn-label">Remaining</div>
+            </div>
+          </div>
+          <div class="progress-bar" style="margin-top:12px;"><div class="fill fill-blue" id="del-trac-bar" style="width:0%"></div></div>
+        </div>
+      </div>
+
+      <div id="scanner-video-wrap">
+        <div class="scanner-line"></div>
+        <div id="scanner-area"></div>
+        <button class="btn btn-danger btn-sm" onclick="stopScanner()" style="position:absolute;top:8px;right:8px;z-index:10;">✕ Stop</button>
+      </div>
+
+      <div class="form-card" style="margin-top:0;">
+        <h3>📦 Manual Add / Scan Result</h3>
+        <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+          <div class="form-group" style="flex:1;min-width:180px;">
+            <label>Tracking ID</label>
+            <input type="text" id="scan-tracking" class="form-control" placeholder="Scan or type tracking ID">
+          </div>
+          <div class="form-group" style="min-width:140px;">
+            <label>Courier</label>
+            <select id="scan-courier" class="form-control"><option>DTDC</option><option>Trackon</option></select>
+          </div>
+          <button class="btn btn-primary" onclick="addToDelivery()">+ Add to Delivery</button>
+        </div>
+        <div class="delivery-helper">
+          <strong>Smart delivery tools:</strong> on your phone, use <strong>Phone Camera / Upload</strong> to capture parcel barcodes or upload a screenshot that contains tracking IDs. The app will try barcode detection first, then OCR text matching against your saved shipments.
+          <br><br>
+          <strong>Camera note:</strong> `Live Scan` uses the camera of the device where this page is open. A USB-connected phone camera cannot be used directly by the browser on your PC.
+        </div>
+        <div class="delivery-status-box" id="delivery-import-status"></div>
+      </div>
+
+      <div class="table-card" style="margin-top:16px;">
+        <div class="table-toolbar">
+          <h3>Today's Delivery List</h3>
+          <span style="font-size:12px;color:var(--text-muted);">Only tracking ID, barcode text, contact number, and signature are kept for print/export.</span>
+        </div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead><tr><th>Tracking ID</th><th>Barcode</th><th>Contact</th><th>Signature</th><th>Action</th></tr></thead>
+            <tbody id="delivery-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOOKING -->
+    <div class="page" id="page-booking">
+      <div class="page-header">
+        <div><h2>My Booking</h2><p>Daily booking statistics</p></div>
+      </div>
+
+      <div class="courier-cards">
+        <div class="courier-card dtdc">
+          <div class="cc-header">
+            <div class="cc-badge">DTDC</div>
+            <span style="font-size:12px;color:var(--text-muted);">Today's bookings</span>
+          </div>
+          <div class="cc-num" id="book-dtdc">0</div>
+          <div class="cc-label">Bookings Placed</div>
+          <div class="progress-bar" style="margin-top:12px;"><div class="fill fill-orange" id="book-dtdc-bar" style="width:0%"></div></div>
+        </div>
+        <div class="courier-card trackon">
+          <div class="cc-header">
+            <div class="cc-badge">Trackon</div>
+            <span style="font-size:12px;color:var(--text-muted);">Today's bookings</span>
+          </div>
+          <div class="cc-num" id="book-trackon">0</div>
+          <div class="cc-label">Bookings Placed</div>
+          <div class="progress-bar" style="margin-top:12px;"><div class="fill fill-blue" id="book-trackon-bar" style="width:0%"></div></div>
+        </div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="chart-card" style="grid-column:1/-1;">
+          <h3>📈 7-Day Booking Trend</h3>
+          <div class="chart-wrap" style="height:240px;"><canvas id="bookingChart" role="img" aria-label="7-day booking trend line chart">7-day booking trend</canvas></div>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <div class="table-toolbar"><h3>Booking History</h3></div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead><tr><th>Date</th><th>DTDC</th><th>Trackon</th><th>Total</th></tr></thead>
+            <tbody id="booking-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- PINCODE -->
+    <div class="page" id="page-pincode">
+      <div class="page-header">
+        <div><h2>Pincode Serviceability</h2><p>Check courier availability by pincode</p></div>
+      </div>
+      <div class="form-card">
+        <h3>🔍 Check Serviceability</h3>
+        <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+          <div class="form-group" style="flex:1;min-width:200px;">
+            <label>Enter Pincode</label>
+            <input type="text" id="pincode-input" class="form-control" placeholder="e.g. 400001" maxlength="6" pattern="[0-9]{6}">
+          </div>
+          <button class="btn btn-primary" onclick="checkPincode()">Check Availability</button>
+        </div>
+        <div class="pincode-summary" id="pincode-summary">
+          Smart pincode lookup uses the latest courier sheets for DTDC and Trackon. DTDC is marked serviceable only when its delivery status is <strong>All Goods</strong>.
+        </div>
+        <div class="pincode-result" id="pincode-result"></div>
+      </div>
+    </div>
+
+    <!-- EMPLOYEES (Admin) -->
+    <div class="page" id="page-employees">
+      <div class="page-header">
+        <div><h2>Manage Employees</h2><p>Create and manage employee accounts</p></div>
+        <button class="btn btn-primary" onclick="openModal('modal-add-employee')">+ Add Employee</button>
+      </div>
+      <div class="mini-stats-grid">
+        <div class="stat-card">
+          <div class="card-icon blue">👥</div>
+          <h3 id="emp-total-card">0</h3>
+          <p>Total login accounts</p>
+        </div>
+        <div class="stat-card">
+          <div class="card-icon purple">🛡️</div>
+          <h3 id="emp-admin-card">0</h3>
+          <p>Admin accounts</p>
+        </div>
+        <div class="stat-card">
+          <div class="card-icon green">🧑‍💼</div>
+          <h3 id="emp-staff-card">0</h3>
+          <p>Staff accounts</p>
+        </div>
+      </div>
+      <div class="form-card" style="padding:18px 20px;">
+        <div style="display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap;">
+          <div>
+            <h3 style="margin-bottom:6px;padding-bottom:0;border:0;">Admin Control</h3>
+            <p style="font-size:13px;color:var(--text-muted);">Admin can add employees here. New employees are saved in the local database and can log in immediately.</p>
+          </div>
+          <button class="btn btn-primary" onclick="openModal('modal-add-employee')">Add Employee</button>
+        </div>
+      </div>
+      <div class="table-card">
+        <div class="table-toolbar">
+          <input type="text" class="search-input" style="width:520px;max-width:100%;" placeholder="Search employees..." oninput="filterEmployees(this.value)">
+          <h3>Employees <span id="emp-count" style="color:var(--text-muted);font-weight:400;font-size:13px;"></span></h3>
+        </div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Join Date</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="employees-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- FINANCE (Admin) -->
+    <div class="page" id="page-finance">
+      <div class="page-header">
+        <div><h2>Finance Module</h2><p>Advanced profit & payment analytics</p></div>
+        <select class="filter-select" onchange="filterFinance(this.value)">
+          <option value="today">Today</option>
+          <option value="week">This Week</option>
+          <option value="month">This Month</option>
+        </select>
+      </div>
+
+      <div class="finance-grid">
+        <div class="finance-card profit">
+          <div class="fc-label">Total Profit</div>
+          <div class="fc-value" id="fin-total-profit">₹0</div>
+          <div class="fc-sub" id="fin-profit-sub">Today</div>
+        </div>
+        <div class="finance-card profit">
+          <div class="fc-label">DTDC Profit</div>
+          <div class="fc-value" id="fin-dtdc-profit">₹0</div>
+          <div class="fc-sub">From DTDC bookings</div>
+        </div>
+        <div class="finance-card profit">
+          <div class="fc-label">Trackon Profit</div>
+          <div class="fc-value" id="fin-trac-profit">₹0</div>
+          <div class="fc-sub">From Trackon bookings</div>
+        </div>
+        <div class="finance-card payable">
+          <div class="fc-label">Pay to DTDC</div>
+          <div class="fc-value" id="fin-dtdc-pay">₹0</div>
+          <div class="fc-sub">Amount payable</div>
+        </div>
+        <div class="finance-card payable">
+          <div class="fc-label">Pay to Trackon</div>
+          <div class="fc-value" id="fin-trac-pay">₹0</div>
+          <div class="fc-sub">Amount payable</div>
+        </div>
+        <div class="finance-card" style="background:linear-gradient(135deg,#f0f6ff,#fff);border-color:var(--primary);">
+          <div class="fc-label">Yesterday vs Today</div>
+          <div class="fc-value" id="fin-compare" style="color:var(--primary);">+0%</div>
+          <div class="fc-sub">Profit comparison</div>
+        </div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="chart-card">
+          <h3>📊 Daily Profit (Bar)</h3>
+          <div class="chart-wrap"><canvas id="finBarChart" role="img" aria-label="Daily profit bar chart">Daily profit data</canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>📈 Weekly Trend (Line)</h3>
+          <div class="chart-wrap"><canvas id="finLineChart" role="img" aria-label="Weekly profit line chart">Weekly profit trend</canvas></div>
+        </div>
+      </div>
+
+      <div class="chart-card" style="margin-top:0;">
+        <h3>🥧 Courier-wise Comparison</h3>
+        <div style="display:flex;gap:20px;flex-wrap:wrap;">
+          <div class="chart-wrap" style="height:220px;flex:1;min-width:220px;">
+            <canvas id="finPieChart" role="img" aria-label="Courier comparison pie chart">Courier comparison</canvas>
+          </div>
+          <div style="flex:1;min-width:200px;padding-top:20px;">
+            <div style="margin-bottom:16px;">
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+                <span style="font-weight:600;color:var(--dtdc);">DTDC</span>
+                <span id="fin-dtdc-pct">0%</span>
+              </div>
+              <div class="progress-bar"><div class="fill fill-orange" id="fin-dtdc-bar" style="width:0%"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+                <span style="font-weight:600;color:var(--trackon);">Trackon</span>
+                <span id="fin-trac-pct">0%</span>
+              </div>
+              <div class="progress-bar"><div class="fill fill-blue" id="fin-trac-bar" style="width:0%"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CALCULATOR -->
+    <div class="page" id="page-calculator">
+      <div class="page-header">
+        <div><h2>Courier Rate Calculator</h2><p>Modern domestic and international courier pricing for business bookings</p></div>
+      </div>
+      <div class="calc-shell">
+        <div class="calc-hero">
+          <div class="calc-head">
+            <div>
+              <h3>📦 Courier Rate Calculator</h3>
+              <p>Switch between domestic and international shipments, choose shipment type, and instantly compare DTDC and Trackon pricing.</p>
+            </div>
+            <div class="calc-pill">💰 Live rate preview</div>
+          </div>
+
+          <div class="calc-mode-switch">
+            <div class="calc-radio">
+              <input type="radio" name="calc-mode" id="calc-mode-domestic" value="domestic" checked onchange="toggleCalcMode()">
+              <label for="calc-mode-domestic">
+                <strong>Domestic</strong>
+                <span>All India states and union territories</span>
+              </label>
+            </div>
+            <div class="calc-radio">
+              <input type="radio" name="calc-mode" id="calc-mode-international" value="international" onchange="toggleCalcMode()">
+              <label for="calc-mode-international">
+                <strong>International</strong>
+                <span>Worldwide country-based estimation</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="calc-fields">
+            <div class="form-group" id="calc-domestic-group">
+              <label>Destination State / UT</label>
+              <select id="calc-state" class="form-control"></select>
+            </div>
+            <div class="form-group" id="calc-international-group" style="display:none;">
+              <label>Destination Country</label>
+              <select id="calc-country" class="form-control"></select>
+            </div>
+            <div class="form-group">
+              <label>Shipment Type</label>
+              <select id="calc-type" class="form-control">
+                <option value="parcel">Parcel</option>
+                <option value="document">Document</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Weight (kg)</label>
+              <input type="number" id="calc-weight" class="form-control" placeholder="e.g. 2.5" min="0.1" step="0.1">
+            </div>
+            <div class="form-group">
+              <label>Type of Goods</label>
+              <select id="calc-goods-type" class="form-control">
+                <option value="General Merchandise">General Merchandise</option>
+                <option value="Documents">Documents</option>
+                <option value="Electronics">Electronics</option>
+                <option value="Cosmetics">Cosmetics</option>
+                <option value="Liquids / Chemicals">Liquids / Chemicals</option>
+                <option value="Food Products">Food Products</option>
+                <option value="Medical Supplies">Medical Supplies</option>
+                <option value="Fragile Items">Fragile Items</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="form-group" style="grid-column:1/-1;">
+              <label>Goods Description</label>
+              <input type="text" id="calc-goods-desc" class="form-control" placeholder="e.g. perfume bottle, power bank, books, garments">
+            </div>
+          </div>
+
+          <div class="calc-actions">
+            <button class="btn calc-gradient-btn" onclick="calculateRate()">Calculate Rate</button>
+            <button class="btn btn-outline" onclick="clearCalc()">Clear</button>
+          </div>
+
+          <div class="calc-error" id="calc-error"></div>
+
+          <div class="calc-result" id="calc-result">
+            <div class="calc-result-top">
+              <div>
+                <h4>Calculated Courier Charges</h4>
+                <p id="calc-note" style="font-size:12px;color:var(--text-muted);margin-top:4px;">Rates are shown based on destination area and shipment type.</p>
+              </div>
+              <div class="calc-pill" id="calc-mode-badge">Domestic</div>
+            </div>
+            <div class="calc-result-meta">
+              <div class="calc-meta-box">
+                <small>Area</small>
+                <strong id="calc-area-name">-</strong>
+              </div>
+              <div class="calc-meta-box">
+                <small>Destination</small>
+                <strong id="calc-destination-name">-</strong>
+              </div>
+              <div class="calc-meta-box">
+                <small>DTDC Service</small>
+                <strong id="calc-series-name">-</strong>
+              </div>
+              <div class="calc-meta-box">
+                <small>Transport</small>
+                <strong id="calc-transport-name">-</strong>
+              </div>
+              <div class="calc-meta-box">
+                <small>Billed Weight</small>
+                <strong id="calc-billed-weight">-</strong>
+              </div>
+              <div class="calc-meta-box">
+                <small>Margin Added</small>
+                <strong id="calc-margin">₹0</strong>
+              </div>
+            </div>
+            <div class="calc-rates">
+              <div class="calc-rate-box dtdc">
+                <div class="rate-label">DTDC Payable</div>
+                <div class="rate-val" id="calc-dtdc-payable">₹0</div>
+              </div>
+              <div class="calc-rate-box sell">
+                <div class="rate-label">DTDC + 70% Margin</div>
+                <div class="rate-val" id="calc-dtdc-selling">₹0</div>
+              </div>
+              <div class="calc-rate-box trackon">
+                <div class="rate-label">Trackon Reference</div>
+                <div class="rate-val" id="calc-trac-rate">₹0</div>
+              </div>
+            </div>
+            <div class="calc-warning" id="calc-warning"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROFILE -->
+    <div class="page" id="page-profile">
+      <div class="page-header">
+        <div><h2>My Profile</h2><p>Manage your account settings</p></div>
+      </div>
+      <div class="profile-hero">
+        <div class="profile-avatar" id="prof-avatar">A</div>
+        <div>
+          <h2 id="prof-name">Admin User</h2>
+          <p id="prof-username">@admin</p>
+          <div style="margin-top:8px;"><span class="badge badge-admin" id="prof-role-badge">Admin</span></div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div class="form-card" style="margin-bottom:0;">
+          <h3>👤 Edit Profile</h3>
+          <div class="form-group" style="margin-bottom:12px;">
+            <label>Full Name</label>
+            <input type="text" id="prof-edit-name" class="form-control" placeholder="Your name">
+          </div>
+          <div class="form-group" style="margin-bottom:12px;">
+            <label>Username</label>
+            <input type="text" id="prof-edit-user" class="form-control" placeholder="Username" readonly style="background:#f8fafc;">
+          </div>
+          <div class="form-group" style="margin-bottom:16px;">
+            <label>Role</label>
+            <input type="text" id="prof-edit-role" class="form-control" readonly style="background:#f8fafc;">
+          </div>
+          <button class="btn btn-primary" onclick="saveProfile()">Save Changes</button>
+        </div>
+        <div class="form-card" style="margin-bottom:0;">
+          <h3>🔒 Change Password</h3>
+          <div class="form-group" style="margin-bottom:12px;">
+            <label>Current Password</label>
+            <input type="password" id="pass-current" class="form-control" placeholder="Current password">
+          </div>
+          <div class="form-group" style="margin-bottom:12px;">
+            <label>New Password</label>
+            <input type="password" id="pass-new" class="form-control" placeholder="New password">
+          </div>
+          <div class="form-group" style="margin-bottom:16px;">
+            <label>Confirm Password</label>
+            <input type="password" id="pass-confirm" class="form-control" placeholder="Confirm new password">
+          </div>
+          <button class="btn btn-primary" onclick="changePassword()">Update Password</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- TOAST -->
+<div id="toast">✓ Done</div>
+
+<!-- MODALS -->
+<!-- Add Shipment -->
+<div class="modal-overlay" id="modal-add-shipment" onclick="closeModalOuter(event,'modal-add-shipment')">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>📦 Add Shipment</h3>
+      <button class="modal-close" onclick="closeModal('modal-add-shipment')">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Customer Name</label>
+        <input type="text" id="ship-cname" class="form-control" placeholder="Customer name">
+      </div>
+      <div class="form-group">
+        <label>Tracking ID</label>
+        <input type="text" id="ship-tid" class="form-control" placeholder="e.g. DTDC123456">
+      </div>
+      <div class="form-group">
+        <label>Weight (kg)</label>
+        <input type="number" id="ship-weight" class="form-control" placeholder="0.5" step="0.1" min="0.1" oninput="updateShipmentRatePreview()">
+      </div>
+      <div class="form-group">
+        <label>Shipment Mode</label>
+        <select id="ship-mode" class="form-control" onchange="toggleShipmentMode()">
+          <option value="domestic">Domestic</option>
+          <option value="international">International</option>
+        </select>
+      </div>
+      <div class="form-group" id="ship-domestic-group">
+        <label>State / Union Territory</label>
+        <select id="ship-state" class="form-control" onchange="updateShipmentRatePreview()"></select>
+      </div>
+      <div class="form-group" id="ship-international-group" style="display:none;">
+        <label>Country</label>
+        <select id="ship-country" class="form-control" onchange="updateShipmentRatePreview()"></select>
+      </div>
+      <div class="form-group">
+        <label>Type of Goods</label>
+        <select id="ship-goods-type" class="form-control" onchange="updateShipmentRatePreview()">
+          <option value="General Merchandise">General Merchandise</option>
+          <option value="Documents">Documents</option>
+          <option value="Electronics">Electronics</option>
+          <option value="Cosmetics">Cosmetics</option>
+          <option value="Liquids / Chemicals">Liquids / Chemicals</option>
+          <option value="Food Products">Food Products</option>
+          <option value="Medical Supplies">Medical Supplies</option>
+          <option value="Fragile Items">Fragile Items</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="form-group" style="grid-column:1/-1;">
+        <label>Goods Description</label>
+        <input type="text" id="ship-goods-desc" class="form-control" placeholder="Describe the item being shipped" oninput="updateShipmentRatePreview()">
+      </div>
+      <div class="form-group">
+        <label>Customer Rate (₹)</label>
+        <input type="number" id="ship-customer-rate" class="form-control" placeholder="Amount charged" step="1" min="0" oninput="this.dataset.auto='false'">
+      </div>
+      <div class="form-group">
+        <label>Courier</label>
+        <select id="ship-courier" class="form-control" onchange="updateShipmentRatePreview()"><option>DTDC</option><option>Trackon</option></select>
+      </div>
+      <div class="form-group">
+        <label>Courier Amount (₹)</label>
+        <input type="text" id="ship-courier-rate" class="form-control" placeholder="Auto calculated" readonly style="background:#f8fafc;font-weight:700;color:var(--primary);">
+        <small id="ship-rate-note" style="display:block;margin-top:6px;color:var(--text-muted);font-size:11px;">Enter weight to calculate</small>
+      </div>
+      <div class="form-group">
+        <label>Booking Date</label>
+        <input type="date" id="ship-date" class="form-control">
+      </div>
+    </div>
+    <div class="form-actions" style="margin-top:20px;">
+      <button class="btn btn-primary" onclick="addShipment()">Add Shipment</button>
+      <button class="btn btn-outline" onclick="closeModal('modal-add-shipment')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Customer -->
+<div class="modal-overlay" id="modal-add-customer" onclick="closeModalOuter(event,'modal-add-customer')">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>👥 Add Customer</h3>
+      <button class="modal-close" onclick="closeModal('modal-add-customer')">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="cust-name" class="form-control" placeholder="Customer name">
+      </div>
+      <div class="form-group">
+        <label>Phone</label>
+        <input type="text" id="cust-phone" class="form-control" placeholder="+91 XXXXXXXXXX">
+      </div>
+      <div class="form-group" style="grid-column:1/-1;">
+        <label>Address</label>
+        <input type="text" id="cust-addr" class="form-control" placeholder="Street address">
+      </div>
+      <div class="form-group">
+        <label>City</label>
+        <input type="text" id="cust-city" class="form-control" placeholder="City">
+      </div>
+      <div class="form-group">
+        <label>Pincode</label>
+        <input type="text" id="cust-pin" class="form-control" placeholder="6-digit pincode" maxlength="6">
+      </div>
+    </div>
+    <div class="form-actions" style="margin-top:20px;">
+      <button class="btn btn-primary" onclick="addCustomer()">Add Customer</button>
+      <button class="btn btn-outline" onclick="closeModal('modal-add-customer')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Employee -->
+<div class="modal-overlay" id="modal-add-employee" onclick="closeModalOuter(event,'modal-add-employee')">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>👔 Add Employee</h3>
+      <button class="modal-close" onclick="closeModal('modal-add-employee')">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="emp-name" class="form-control" placeholder="Employee name">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="emp-email" class="form-control" placeholder="employee@example.com">
+      </div>
+      <div class="form-group">
+        <label>Phone</label>
+        <input type="text" id="emp-phone" class="form-control" placeholder="9876543210">
+      </div>
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="emp-user" class="form-control" placeholder="username">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="emp-pass" class="form-control" placeholder="Password">
+      </div>
+      <div class="form-group">
+        <label>Role</label>
+        <select id="emp-role" class="form-control"><option>Staff</option><option>Admin</option></select>
+      </div>
+    </div>
+    <div class="form-actions" style="margin-top:20px;">
+      <button class="btn btn-primary" onclick="addEmployee()">Add Employee</button>
+      <button class="btn btn-outline" onclick="closeModal('modal-add-employee')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-edit-employee" onclick="closeModalOuter(event,'modal-edit-employee')">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>✏️ Edit Employee</h3>
+      <button class="modal-close" onclick="closeModal('modal-edit-employee')">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="edit-emp-name" class="form-control" placeholder="Employee name">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="edit-emp-email" class="form-control" placeholder="employee@example.com">
+      </div>
+      <div class="form-group">
+        <label>Phone</label>
+        <input type="text" id="edit-emp-phone" class="form-control" placeholder="9876543210">
+      </div>
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="edit-emp-user" class="form-control" placeholder="username">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="edit-emp-pass" class="form-control" placeholder="Password">
+      </div>
+      <div class="form-group">
+        <label>Role</label>
+        <select id="edit-emp-role" class="form-control"><option>Staff</option><option>Admin</option></select>
+      </div>
+    </div>
+    <div class="form-actions" style="margin-top:20px;">
+      <button class="btn btn-primary" onclick="updateEmployee()">Save Changes</button>
+      <button class="btn btn-outline" onclick="closeModal('modal-edit-employee')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- New Quotation -->
+<div class="modal-overlay" id="modal-new-quote" onclick="closeModalOuter(event,'modal-new-quote')">
+  <div class="modal" style="width:620px;max-width:96vw;">
+    <div class="modal-header">
+      <h3>📋 New Quotation</h3>
+      <button class="modal-close" onclick="closeModal('modal-new-quote')">✕</button>
+    </div>
+    <div class="form-grid" style="margin-bottom:16px;">
+      <div class="form-group">
+        <label>Customer Name</label>
+        <input type="text" id="qt-cname" class="form-control" placeholder="Customer name">
+      </div>
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" id="qt-date" class="form-control">
+      </div>
+    </div>
+    <div id="qt-rows">
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;margin-bottom:8px;font-size:12px;font-weight:600;color:var(--text-muted);">
+        <span>Description</span><span>Qty</span><span>Rate (₹)</span><span></span>
+      </div>
+    </div>
+    <button class="btn btn-outline btn-sm" onclick="addQuoteRow()" style="margin-top:4px;">+ Add Row</button>
+    <div style="text-align:right;margin-top:16px;padding-top:12px;border-top:1px solid var(--border);">
+      <strong style="font-size:16px;">Total: ₹<span id="qt-total">0</span></strong>
+    </div>
+    <div class="form-actions" style="margin-top:16px;">
+      <button class="btn btn-primary" id="quote-save-btn" onclick="saveQuotation()">Save Quotation</button>
+      <button class="btn btn-outline btn-sm" onclick="printQuote()" style="margin-left:auto;">🖨 Print</button>
+    </div>
+  </div>
+</div>
+
+<!-- View Quotation -->
+<div class="modal-overlay" id="modal-view-quote" onclick="closeModalOuter(event,'modal-view-quote')">
+  <div class="modal" style="width:560px;max-width:96vw;" id="modal-view-quote-inner">
+    <div class="modal-header">
+      <h3>📋 Quotation Details</h3>
+      <button class="modal-close" onclick="closeModal('modal-view-quote')">✕</button>
+    </div>
+    <div id="quote-view-content"></div>
+    <div class="form-actions" style="margin-top:16px;">
+      <button class="btn btn-outline" onclick="printQuoteView()">🖨 Print</button>
+      <button class="btn btn-danger btn-sm admin-only-btn" id="quote-delete-btn" onclick="deleteQuote()">🗑 Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- View Shipment -->
+<div class="modal-overlay" id="modal-view-shipment" onclick="closeModalOuter(event,'modal-view-shipment')">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>🔍 Shipment Details</h3>
+      <button class="modal-close" onclick="closeModal('modal-view-shipment')">✕</button>
+    </div>
+    <div id="shipment-view-content"></div>
+    <div class="form-actions" style="margin-top:16px;">
+      <button class="btn btn-success btn-sm" onclick="markDelivered()">✅ Mark Delivered</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteShipment()">🗑 Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Track Shipment -->
+<div class="modal-overlay" id="modal-track-shipment" onclick="closeModalOuter(event,'modal-track-shipment')">
+  <div class="modal" style="width:540px;max-width:96vw;">
+    <div class="modal-header">
+      <h3>🔎 Track Shipment</h3>
+      <button class="modal-close" onclick="closeModal('modal-track-shipment')">✕</button>
+    </div>
+    <div id="track-modal-content" style="font-size:13.5px;color:var(--text);line-height:1.6;"></div>
+    <div id="track-auto-result" style="display:none;margin-top:14px;padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:#f8fafc;font-size:13px;line-height:1.6;"></div>
+    <div class="form-group" style="margin-top:14px;">
+      <label>Paste official status text</label>
+      <input type="text" id="track-status-text" class="form-control" placeholder="Delivered / In Transit / Out for Delivery">
+    </div>
+    <div class="form-actions" style="margin-top:14px;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-primary btn-sm" onclick="fetchTrackedShipmentStatus()">Fetch Auto Status</button>
+      <button class="btn btn-primary btn-sm" onclick="applyTrackingStatusText()">Apply Status Text</button>
+      <button class="btn btn-success btn-sm" onclick="updateTrackedShipmentStatus('Delivered')">Delivered</button>
+      <button class="btn btn-outline btn-sm" onclick="updateTrackedShipmentStatus('Out for Delivery')">Out for Delivery</button>
+      <button class="btn btn-outline btn-sm" onclick="updateTrackedShipmentStatus('Pending')">In Transit / Pending</button>
+    </div>
+  </div>
+</div>
+
+<!-- Admin OTP -->
+<div class="modal-overlay" id="modal-admin-otp" onclick="closeModalOuter(event,'modal-admin-otp')" style="z-index:10001;">
+  <div class="modal" style="width:460px;max-width:94vw;">
+    <div class="modal-header">
+      <h3>🔐 Admin OTP Verification</h3>
+      <button class="modal-close" onclick="closeModal('modal-admin-otp')">✕</button>
+    </div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">Choose where the OTP should go for the admin account. In offline mode the OTP is generated locally and shown as a preview.</p>
+    <div class="otp-delivery">
+      <label class="otp-option active" id="otp-option-email" onclick="setOtpChannel('email')">
+        <input type="radio" name="otp-channel" value="email" checked>
+        <strong style="display:block;font-size:14px;margin-bottom:4px;">Email</strong>
+        <span id="otp-email-label" style="font-size:12px;color:var(--text-muted);"></span>
+      </label>
+      <label class="otp-option" id="otp-option-phone" onclick="setOtpChannel('phone')">
+        <input type="radio" name="otp-channel" value="phone">
+        <strong style="display:block;font-size:14px;margin-bottom:4px;">Phone</strong>
+        <span id="otp-phone-label" style="font-size:12px;color:var(--text-muted);"></span>
+      </label>
+    </div>
+    <div class="form-actions" style="margin-top:0;">
+      <button class="btn btn-primary" onclick="sendAdminOtp()">Regenerate OTP</button>
+    </div>
+    <div class="otp-preview" id="otp-preview"></div>
+    <div class="form-group" style="margin-top:14px;">
+      <label>Enter OTP</label>
+      <input type="text" id="otp-code" class="form-control" placeholder="Enter 6-digit OTP" maxlength="6">
+    </div>
+    <div class="form-actions" style="margin-top:18px;">
+      <button class="btn btn-success" onclick="verifyAdminOtp()">Verify & Login</button>
+      <button class="btn btn-outline" onclick="closeModal('modal-admin-otp')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyABrBM9LbIOwZZXEXRceSTPwFSady6sM8I",
+  authDomain: "projecthost-7871a.firebaseapp.com",
+  databaseURL: "https://projecthost-7871a-default-rtdb.firebaseio.com",
+  projectId: "projecthost-7871a",
+  storageBucket: "projecthost-7871a.firebasestorage.app",
+  messagingSenderId: "480771803922",
+  appId: "1:480771803922:web:ccde7f29fd9a61e41bc1cb",
+  measurementId: "G-EFPHGNZNJH"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+// ===================== DATA STORE =====================
+const DB = {
+  cache: {},
+  clone(value) {
+    return value == null ? value : JSON.parse(JSON.stringify(value));
+  },
+  legacyGet(k) {
+    try {
+      return JSON.parse(localStorage.getItem('ngbm_' + k) || 'null');
+    } catch (e) {
+      return null;
+    }
+  },
+  async init() {
+    try {
+      const snap = await firebase.database().ref('/').get();
+      this.cache = snap.exists() ? (snap.val() || {}) : {};
+      return true;
+    } catch (error) {
+      console.error('Firebase database load failed:', error);
+      this.cache = {};
+      return false;
+    }
+  },
+  get(k) {
+    return this.clone(this.cache[k]);
+  },
+  async set(k, v) {
+    const previous = this.cache[k];
+    const cloned = this.clone(v);
+    this.cache[k] = cloned;
+    const saved = await this.persist(k, cloned);
+    if (!saved) this.cache[k] = previous;
+    return saved;
+  },
+  async persist(k, v) {
+    try {
+      await firebase.database().ref('/' + k).set(v);
+      localStorage.setItem('ngbm_' + k, JSON.stringify(v));
+      return true;
+    } catch (error) {
+      console.error('Firebase database save failed:', error);
+      showToast('Could not save to Firebase database', 'error');
+      return false;
+    }
+  },
+};
+
+async function initDB() {
+  await DB.init();
+  if (!DB.get('authConfig')) {
+    DB.set('users', []);
+    DB.set('authConfig', { adminSetupComplete: false, version: 2 });
+  }
+  if (!DB.get('users')) {
+    DB.set('users', []);
+  }
+  if (!DB.get('shipments')) {
+    const today = todayStr();
+    DB.set('shipments', DB.legacyGet('shipments') || [
+      { id:1, customer:'Rahul Sharma', trackingId:'DTDC001234', weight:2.5, destination:'Mumbai', courier:'DTDC', date:today, status:'Delivered' },
+      { id:2, customer:'Priya Patel', trackingId:'TRK009876', weight:1.0, destination:'Delhi', courier:'Trackon', date:today, status:'Pending' },
+      { id:3, customer:'Amit Kumar', trackingId:'DTDC005678', weight:5.0, destination:'Bangalore', courier:'DTDC', date:today, status:'Pending' },
+      { id:4, customer:'Sneha Roy', trackingId:'TRK001122', weight:0.5, destination:'Chennai', courier:'Trackon', date:today, status:'Delivered' },
+      { id:5, customer:'Vikas Gupta', trackingId:'DTDC009999', weight:3.0, destination:'Hyderabad', courier:'DTDC', date:todayMinus(1), status:'Delivered' },
+    ]);
+  }
+  if (!DB.get('customers')) {
+    DB.set('customers', DB.legacyGet('customers') || [
+      { id:1, name:'Rahul Sharma', phone:'9876543210', address:'123 MG Road', city:'Mumbai', pincode:'400001' },
+      { id:2, name:'Priya Patel', phone:'9765432109', address:'456 CP Nagar', city:'Delhi', pincode:'110001' },
+      { id:3, name:'Amit Kumar', phone:'9654321098', address:'789 Brigade Road', city:'Bangalore', pincode:'560001' },
+    ]);
+  }
+  if (!DB.get('quotations')) {
+    DB.set('quotations', DB.legacyGet('quotations') || [
+      { id:1, customer:'Rahul Sharma', date:todayStr(), rows:[{desc:'Air Freight - 2kg',qty:1,rate:250},{desc:'Packaging',qty:1,rate:50}], total:300 },
+    ]);
+  }
+  if (!DB.get('deliveries')) { DB.set('deliveries', DB.legacyGet('deliveries') || []); }
+}
+
+function todayStr() {
+  return new Date().toISOString().split('T')[0];
+}
+function todayMinus(d) {
+  const dt = new Date(); dt.setDate(dt.getDate()-d);
+  return dt.toISOString().split('T')[0];
+}
+function fmtDate(d) {
+  const dt = new Date(d+'T00:00:00');
+  return dt.toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'numeric'});
+}
+function hasCharts() {
+  return typeof Chart !== 'undefined';
+}
+function renderChartFallback(canvasId, message) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  canvas.style.display = 'none';
+  const fallbackId = canvasId + '-fallback';
+  let fallback = document.getElementById(fallbackId);
+  if (!fallback) {
+    fallback = document.createElement('div');
+    fallback.id = fallbackId;
+    fallback.style.cssText = 'display:flex;align-items:center;justify-content:center;height:100%;min-height:220px;padding:20px;text-align:center;color:var(--text-muted);font-size:13px;';
+    canvas.parentNode.appendChild(fallback);
+  }
+  fallback.textContent = message;
+}
+function clearChartFallback(canvasId) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  canvas.style.display = '';
+  const fallback = document.getElementById(canvasId + '-fallback');
+  if (fallback) fallback.remove();
+}
+
+function statusBadgeClass(status) {
+  return String(status || 'Pending').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+// ===================== AUTH =====================
+let currentUser = null;
+let editingEmployeeId = null;
+let pendingAdminUser = null;
+let otpChannel = 'email';
+let currentOtpCode = null;
+
+function getAuthConfig() {
+  return DB.get('authConfig') || { adminSetupComplete: false, version: 2 };
+}
+
+function saveAuthConfig(config) {
+  DB.set('authConfig', config);
+}
+
+function showAuthPanel(panel) {
+  const loginPanel = document.getElementById('auth-panel-login');
+  const registerPanel = document.getElementById('auth-panel-register');
+  const loginTab = document.getElementById('auth-tab-login');
+  const registerTab = document.getElementById('auth-tab-register');
+  if (loginPanel) loginPanel.classList.toggle('active', panel === 'login');
+  if (registerPanel) registerPanel.classList.toggle('active', panel === 'register');
+  if (loginTab) loginTab.classList.toggle('active', panel === 'login');
+  if (registerTab) registerTab.classList.toggle('active', panel === 'register');
+}
+
+function refreshAuthUI() {
+  const users = DB.get('users') || [];
+  const config = getAuthConfig();
+  const hasAdmin = users.some(user => user.role === 'Admin');
+  const switcher = document.getElementById('auth-switch');
+  const registerError = document.getElementById('register-error');
+  if (switcher) switcher.style.display = hasAdmin && config.adminSetupComplete ? 'flex' : 'none';
+  if (!hasAdmin || !config.adminSetupComplete) {
+    showAuthPanel('register');
+    if (registerError) {
+      registerError.style.display = 'block';
+      registerError.textContent = 'Create the first admin account to continue.';
+    }
+    return;
+  }
+  if (registerError) registerError.style.display = 'none';
+  showAuthPanel('login');
+}
+
+function setOtpChannel(channel) {
+  otpChannel = channel;
+  document.getElementById('otp-option-email').classList.toggle('active', channel === 'email');
+  document.getElementById('otp-option-phone').classList.toggle('active', channel === 'phone');
+  if (pendingAdminUser) generateAdminOtp();
+}
+
+function prepareAdminOtp(user) {
+  setOtpChannel('email');
+  document.getElementById('otp-email-label').textContent = user.email || 'No email saved';
+  document.getElementById('otp-phone-label').textContent = user.phone || 'No phone saved';
+  document.getElementById('otp-code').value = '';
+  generateAdminOtp();
+  setTimeout(() => document.getElementById('otp-code')?.focus(), 50);
+}
+
+function generateAdminOtp() {
+  if (!pendingAdminUser) return;
+  const target = otpChannel === 'email' ? pendingAdminUser.email : pendingAdminUser.phone;
+  if (!target) {
+    currentOtpCode = null;
+    const preview = document.getElementById('otp-preview');
+    preview.style.display = 'block';
+    preview.textContent = `Admin ${otpChannel} is not configured for OTP delivery.`;
+    return;
+  }
+  currentOtpCode = String(Math.floor(100000 + Math.random() * 900000));
+  const preview = document.getElementById('otp-preview');
+  preview.style.display = 'block';
+  preview.innerHTML = `OTP (${otpChannel}): <span style="font-size:20px;font-weight:800;letter-spacing:3px;">${currentOtpCode}</span><br><span style="font-size:12px;font-weight:600;color:#047857;">Target: ${target}</span>`;
+}
+
+function sendAdminOtp() {
+  generateAdminOtp();
+  if (!currentOtpCode) {
+    showToast(`Admin ${otpChannel} is not configured`, 'error');
+    return;
+  }
+  showToast(`OTP generated for admin ${otpChannel}`);
+}
+
+function verifyAdminOtp() {
+  const code = document.getElementById('otp-code').value.trim();
+  if (!pendingAdminUser || !currentOtpCode) {
+    showToast('Generate OTP first','error');
+    return;
+  }
+  if (code !== currentOtpCode) {
+    showToast('Invalid OTP','error');
+    return;
+  }
+  closeModal('modal-admin-otp');
+  currentOtpCode = null;
+  completeLogin(pendingAdminUser);
+  pendingAdminUser = null;
+}
+
+function registerAdmin() {
+  const name = document.getElementById('reg-admin-name').value.trim();
+  const username = document.getElementById('reg-admin-user').value.trim();
+  const password = document.getElementById('reg-admin-pass').value.trim();
+  const email = document.getElementById('reg-admin-email').value.trim();
+  const phone = document.getElementById('reg-admin-phone').value.trim();
+  const error = document.getElementById('register-error');
+  if (!name || !username || !password || !email || !phone) {
+    error.style.display = 'block';
+    error.textContent = 'Please complete all admin registration fields.';
+    return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    error.style.display = 'block';
+    error.textContent = 'Enter a valid admin email address.';
+    return;
+  }
+  if (!/^\d{10}$/.test(phone)) {
+    error.style.display = 'block';
+    error.textContent = 'Enter a valid 10-digit admin phone number.';
+    return;
+  }
+  if (!/^[a-zA-Z0-9._-]{3,20}$/.test(username)) {
+    error.style.display = 'block';
+    error.textContent = 'Admin username must be 3-20 letters or numbers.';
+    return;
+  }
+  const users = [{
+    id: Date.now(),
+    name,
+    username,
+    password,
+    email,
+    phone,
+    role: 'Admin',
+    status: 'Active',
+    created: todayStr(),
+  }];
+  DB.set('users', users);
+  saveAuthConfig({ adminSetupComplete: true, version: 2 });
+  error.style.display = 'none';
+  ['reg-admin-name','reg-admin-user','reg-admin-pass','reg-admin-email','reg-admin-phone'].forEach(id => document.getElementById(id).value = '');
+  refreshAuthUI();
+  showToast('Admin account created successfully!');
+}
+
+function fillDemo(u, p) {
+  document.getElementById('login-user').value = u;
+  document.getElementById('login-pass').value = p;
+}
+
+async function doLogin() {
+  await appReadyPromise;
+  const u = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pass').value.trim();
+  const users = DB.get('users') || [];
+  const user = users.find(x => x.username === u && x.password === p);
+  if (!user) {
+    document.getElementById('auth-error').style.display = 'block';
+    return;
+  }
+  if (user.role === 'Admin') {
+    pendingAdminUser = user;
+    prepareAdminOtp(user);
+    document.getElementById('auth-error').style.display = 'none';
+    openModal('modal-admin-otp');
+    return;
+  }
+  completeLogin(user);
+}
+
+function completeLogin(user) {
+  document.getElementById('auth-error').style.display = 'none';
+  currentUser = user;
+  document.getElementById('auth-screen').style.opacity = '0';
+  setTimeout(() => { document.getElementById('auth-screen').style.display = 'none'; }, 400);
+  initUI();
+}
+
+document.getElementById('login-pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+document.getElementById('login-user').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+
+function doLogout() {
+  currentUser = null;
+  pendingAdminUser = null;
+  currentOtpCode = null;
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('auth-screen').style.opacity = '1';
+  document.getElementById('login-user').value = '';
+  document.getElementById('login-pass').value = '';
+  document.getElementById('auth-error').style.display = 'none';
+  refreshAuthUI();
+}
+
+function initUI() {
+  const isAdmin = currentUser.role === 'Admin';
+  // Sidebar user
+  document.getElementById('sb-avatar').textContent = currentUser.name[0].toUpperCase();
+  document.getElementById('sb-name').textContent = currentUser.name;
+  document.getElementById('sb-role').textContent = currentUser.role;
+  // Admin-only elements
+  document.querySelectorAll('.admin-only, .admin-card, .admin-only-btn').forEach(el => {
+    if (!isAdmin) {
+      el.style.display = 'none';
+      return;
+    }
+    if (el.classList.contains('nav-item')) {
+      el.style.display = 'flex';
+      return;
+    }
+    if (el.classList.contains('nav-section-label') || el.classList.contains('admin-only-btn')) {
+      el.style.display = '';
+      return;
+    }
+    el.style.display = el.classList.contains('admin-card') ? 'block' : '';
+  });
+  // Profile
+  document.getElementById('prof-avatar').textContent = currentUser.name[0].toUpperCase();
+  document.getElementById('prof-name').textContent = currentUser.name;
+  document.getElementById('prof-username').textContent = '@' + currentUser.username;
+  document.getElementById('prof-role-badge').textContent = currentUser.role;
+  document.getElementById('prof-role-badge').className = 'badge badge-' + currentUser.role.toLowerCase();
+  document.getElementById('prof-edit-name').value = currentUser.name;
+  document.getElementById('prof-edit-user').value = currentUser.username;
+  document.getElementById('prof-edit-role').value = currentUser.role;
+  // Date/time
+  updateDateTime();
+  setInterval(updateDateTime, 1000);
+  // Set today's date on forms
+  const td = todayStr();
+  const dateInputs = ['ship-date','qt-date'];
+  dateInputs.forEach(id => { const el = document.getElementById(id); if(el) el.value = td; });
+  navTo('dashboard');
+}
+
+function updateDateTime() {
+  const now = new Date();
+  document.getElementById('live-time').textContent = now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('topbar-date').textContent = now.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});
+}
+
+// ===================== NAVIGATION =====================
+const pageTitles = {
+  dashboard: ['Dashboard','Overview of today\'s operations'],
+  shipments: ['Shipments','Track & manage all shipments'],
+  customers: ['Customers','Customer database'],
+  quotation: ['Quotations','Create & manage quotations'],
+  delivery: ['My Delivery','Today\'s delivery inventory'],
+  booking: ['My Booking','Daily booking statistics'],
+  pincode: ['Pincode Check','Check courier serviceability'],
+  calculator: ['Rate Calculator','Calculate shipping rates'],
+  employees: ['Manage Employees','Create and manage employee accounts'],
+  finance: ['Finance','Profit & payment analytics'],
+  profile: ['Profile','Manage your account'],
+};
+
+function navTo(page) {
+  if ((page==='customers'||page==='quotation'||page==='employees'||page==='finance') && currentUser?.role!=='Admin') {
+    showToast('Access denied. Admin only.','error'); return;
+  }
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const el = document.getElementById('page-'+page);
+  if (el) el.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.textContent.trim().toLowerCase().includes(page) || n.getAttribute('onclick')?.includes("'"+page+"'")) {
+      n.classList.add('active');
+    }
+  });
+  const titles = pageTitles[page] || [page, ''];
+  document.getElementById('topbar-title').textContent = titles[0];
+  document.getElementById('topbar-sub').textContent = titles[1];
+  // Refresh page data
+  const refreshers = {
+    dashboard: refreshDashboard,
+    shipments: renderShipments,
+    customers: renderCustomers,
+    quotation: renderQuotations,
+    delivery: renderDelivery,
+    booking: renderBooking,
+    employees: renderEmployees,
+    finance: renderFinance,
+  };
+  if (refreshers[page]) refreshers[page]();
+}
+
+// ===================== TOAST =====================
+let toastTimer = null;
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = (type==='success'?'✓ ':'✕ ') + msg;
+  t.className = 'show ' + type;
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{ t.className=''; }, 3000);
+}
+
+// ===================== MODALS =====================
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+function closeModalOuter(e, id) {
+  if (e.target.id === id) closeModal(id);
+}
+
+// ===================== DASHBOARD =====================
+let weeklyChart, splitChart;
+function refreshDashboard() {
+  const ships = DB.get('shipments') || [];
+  const customers = DB.get('customers') || [];
+  const quotes = DB.get('quotations') || [];
+  const today = todayStr();
+
+  const todayShips = ships.filter(s => s.date === today);
+  const dtdcToday = todayShips.filter(s => s.courier==='DTDC');
+  const trackonToday = todayShips.filter(s => s.courier==='Trackon');
+  const deliveredToday = todayShips.filter(s => s.status==='Delivered');
+
+  document.getElementById('dc-total').textContent = ships.length;
+  document.getElementById('dc-delivered').textContent = deliveredToday.length;
+  document.getElementById('dc-quotes').textContent = quotes.length;
+  document.getElementById('dc-customers').textContent = customers.length;
+
+  const profit = todayShips.reduce((sum, ship) => sum + getShipmentFinance(ship).profit, 0);
+  document.getElementById('dc-profit').textContent = '₹' + profit.toLocaleString('en-IN');
+  document.getElementById('dc-booking-dtdc').textContent = dtdcToday.length;
+  document.getElementById('dc-booking-trackon').textContent = trackonToday.length;
+
+  document.getElementById('cc-dtdc').textContent = dtdcToday.length;
+  document.getElementById('cc-trackon').textContent = trackonToday.length;
+  const total = dtdcToday.length + trackonToday.length || 1;
+  document.getElementById('cc-dtdc-bar').style.width = Math.round(dtdcToday.length/total*100)+'%';
+  document.getElementById('cc-trackon-bar').style.width = Math.round(trackonToday.length/total*100)+'%';
+
+  if (!hasCharts()) {
+    renderChartFallback('weeklyChart', 'Charts are unavailable offline until Chart.js is stored locally.');
+    renderChartFallback('splitChart', 'Charts are unavailable offline until Chart.js is stored locally.');
+    return;
+  }
+  clearChartFallback('weeklyChart');
+  clearChartFallback('splitChart');
+
+  // Weekly chart
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const wData = days.map((_,i) => ships.filter(s => {
+    const d = new Date(s.date+'T00:00:00');
+    return d.getDay() === (i+1)%7;
+  }).length);
+
+  if (weeklyChart) weeklyChart.destroy();
+  weeklyChart = new Chart(document.getElementById('weeklyChart'), {
+    type:'bar',
+    data:{ labels:days, datasets:[{
+      label:'Shipments', data:wData,
+      backgroundColor:'rgba(26,110,245,0.7)', borderRadius:6, borderSkipped:false
+    }]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:false } },
+      scales:{ y:{ beginAtZero:true, ticks:{ font:{size:11} } }, x:{ ticks:{ font:{size:11} } } }
+    }
+  });
+
+  // Split chart
+  if (splitChart) splitChart.destroy();
+  const dtdcAll = ships.filter(s=>s.courier==='DTDC').length;
+  const tracAll = ships.filter(s=>s.courier==='Trackon').length;
+  splitChart = new Chart(document.getElementById('splitChart'), {
+    type:'doughnut',
+    data:{ labels:['DTDC','Trackon'], datasets:[{
+      data:[dtdcAll,tracAll],
+      backgroundColor:['#e67e22','#1a6ef5'], borderWidth:0
+    }]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ position:'bottom', labels:{ font:{size:11}, padding:14 } } },
+      cutout:'65%'
+    }
+  });
+}
+
+// ===================== SHIPMENTS =====================
+let allShipments = [];
+let selectedShipmentId = null;
+
+function renderShipments(filter='') {
+  allShipments = DB.get('shipments') || [];
+  let data = allShipments;
+  if (filter) data = data.filter(s =>
+    s.trackingId.toLowerCase().includes(filter.toLowerCase()) ||
+    s.customer.toLowerCase().includes(filter.toLowerCase())
+  );
+  document.getElementById('ship-count').textContent = '('+data.length+')';
+  const tbody = document.getElementById('shipments-tbody');
+  tbody.innerHTML = data.length ? '' : '<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text-muted);">No shipments found</td></tr>';
+  data.forEach(s => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span style="font-family:var(--mono);font-size:12px;background:var(--bg);padding:3px 8px;border-radius:5px;">${s.trackingId}</span></td>
+      <td>${s.customer}</td>
+      <td>${s.destination}</td>
+      <td>${s.weight} kg</td>
+      <td><span class="badge badge-${s.courier.toLowerCase()}">${s.courier}</span></td>
+      <td>${fmtDate(s.date)}</td>
+      <td><span class="badge badge-${statusBadgeClass(s.status)}">${s.status}</span></td>
+      <td>
+        <button class="btn btn-outline btn-sm" onclick="viewShipment(${s.id})">View</button>
+        <button class="btn btn-sm" style="background:var(--primary-light);color:var(--primary);margin-left:4px;" onclick="trackShipment('${s.trackingId}','${s.courier}')">Track</button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function filterShipments(v) { renderShipments(v); }
+let _courierFilter='', _statusFilter='';
+function filterShipmentsCourier(v) {
+  _courierFilter = v;
+  applyShipmentFilters();
+}
+function filterShipmentsStatus(v) {
+  _statusFilter = v;
+  applyShipmentFilters();
+}
+function applyShipmentFilters() {
+  let data = DB.get('shipments') || [];
+  if (_courierFilter) data = data.filter(s => s.courier===_courierFilter);
+  if (_statusFilter) data = data.filter(s => s.status===_statusFilter);
+  document.getElementById('ship-count').textContent = '('+data.length+')';
+  const tbody = document.getElementById('shipments-tbody');
+  tbody.innerHTML = '';
+  data.forEach(s => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><span style="font-family:var(--mono);font-size:12px;background:var(--bg);padding:3px 8px;border-radius:5px;">${s.trackingId}</span></td>
+      <td>${s.customer}</td><td>${s.destination}</td><td>${s.weight} kg</td>
+      <td><span class="badge badge-${s.courier.toLowerCase()}">${s.courier}</span></td>
+      <td>${fmtDate(s.date)}</td>
+      <td><span class="badge badge-${statusBadgeClass(s.status)}">${s.status}</span></td>
+      <td><button class="btn btn-outline btn-sm" onclick="viewShipment(${s.id})">View</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function updateShipmentRatePreview() {
+  const weight = parseFloat(document.getElementById('ship-weight').value);
+  const mode = document.getElementById('ship-mode').value;
+  const destination = mode === 'domestic'
+    ? document.getElementById('ship-state').value
+    : document.getElementById('ship-country').value;
+  const courier = document.getElementById('ship-courier').value;
+  const rateInput = document.getElementById('ship-courier-rate');
+  const note = document.getElementById('ship-rate-note');
+  if (!rateInput || !note) return;
+  if (!destination) {
+    rateInput.value = '';
+    note.textContent = mode === 'domestic' ? 'Select state to calculate' : 'Select country to calculate';
+    return;
+  }
+  if (!weight || weight <= 0) {
+    rateInput.value = '';
+    note.textContent = 'Enter weight to calculate';
+    return;
+  }
+  const rateInfo = getShipmentRateInfo({ mode, destination, weight, courier });
+  rateInput.value = '₹' + rateInfo.courierRate.toLocaleString('en-IN');
+  note.textContent = `${courier} official amount · ${rateInfo.areaName} · ${mode === 'domestic' ? 'Domestic' : 'International'}`;
+}
+
+function addShipment() {
+  const cn=document.getElementById('ship-cname').value.trim();
+  const tid=document.getElementById('ship-tid').value.trim();
+  const wt=document.getElementById('ship-weight').value;
+  const mode=document.getElementById('ship-mode').value;
+  const dest=mode === 'domestic' ? document.getElementById('ship-state').value : document.getElementById('ship-country').value;
+  const customerRate=parseFloat(document.getElementById('ship-customer-rate').value);
+  const courier=document.getElementById('ship-courier').value;
+  const date=document.getElementById('ship-date').value;
+  if (!cn||!tid||!wt||!dest||!date||Number.isNaN(customerRate)) { showToast('Please fill all fields','error'); return; }
+  const ships = DB.get('shipments') || [];
+  if (ships.find(s=>s.trackingId===tid)) { showToast('Tracking ID already exists','error'); return; }
+  const rateInfo = getShipmentRateInfo({ mode, destination: dest, weight: parseFloat(wt), courier });
+  ships.push({
+    id:Date.now(),
+    customer:cn,
+    trackingId:tid,
+    weight:parseFloat(wt),
+    destination:dest,
+    courier,
+    date,
+    status:'Pending',
+    customerRate: Math.round(customerRate),
+    courierRate: rateInfo.courierRate,
+    profit: Math.round(customerRate - rateInfo.courierRate),
+    rateArea: rateInfo.areaName,
+    mode,
+    shipmentType: 'parcel'
+  });
+  DB.set('shipments', ships);
+  closeModal('modal-add-shipment');
+  renderShipments();
+  showToast('Shipment added successfully!');
+  // Clear
+  ['ship-cname','ship-tid','ship-weight','ship-customer-rate','ship-courier-rate'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('ship-mode').value = 'domestic';
+  toggleShipmentMode();
+  document.getElementById('ship-rate-note').textContent = 'Enter weight to calculate';
+}
+
+function viewShipment(id) {
+  selectedShipmentId = id;
+  const ships = DB.get('shipments') || [];
+  const s = ships.find(x=>x.id===id);
+  if (!s) return;
+  document.getElementById('shipment-view-content').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13.5px;">
+      <div><label style="font-size:11px;color:var(--text-muted);font-weight:600;">TRACKING ID</label><p style="font-family:var(--mono);font-size:16px;font-weight:700;margin-top:4px;color:var(--primary);">${s.trackingId}</p></div>
+      <div><label style="font-size:11px;color:var(--text-muted);font-weight:600;">STATUS</label><p style="margin-top:4px;"><span class="badge badge-${statusBadgeClass(s.status)}">${s.status}</span></p></div>
+      <div><label style="font-size:11px;color:var(--text-muted);font-weight:600;">CUSTOMER</label><p style="margin-top:4px;font-weight:600;">${s.customer}</p></div>
+      <div><label style="font-size:11px;color:var(--text-muted);font-weight:600;">COURIER</label><p style="margin-top:4px;"><span class="badge badge-${s.courier.toLowerCase()}">${s.courier}</span></p></div>
+      <div><label style="font-size:11px;color:var(--text-muted);font-weight:600;">DESTINATION</label><p style="margin-top:4px;">${s.destination}</p></div>
+      <div><label style="font-size:11px;color:var(--text-muted);font-weight:600;">WEIGHT</label><p style="margin-top:4px;">${s.weight} kg</p></div>
+      <div><label style="font-size:11px;color:var(--text-muted);font-weight:600;">COURIER RATE</label><p style="margin-top:4px;">₹${getShipmentFinance(s).courierCost.toLocaleString('en-IN')}</p></div>
+      <div><label style="font-size:11px;color:var(--text-muted);font-weight:600;">CUSTOMER RATE</label><p style="margin-top:4px;">₹${getShipmentFinance(s).customerCharge.toLocaleString('en-IN')}</p></div>
+      <div><label style="font-size:11px;color:var(--text-muted);font-weight:600;">PROFIT</label><p style="margin-top:4px;">₹${getShipmentFinance(s).profit.toLocaleString('en-IN')}</p></div>
+      <div><label style="font-size:11px;color:var(--text-muted);font-weight:600;">BOOKING DATE</label><p style="margin-top:4px;">${fmtDate(s.date)}</p></div>
+    </div>`;
+  openModal('modal-view-shipment');
+}
+
+function updateShipmentRatePreview() {
+  const weight = parseFloat(document.getElementById('ship-weight').value);
+  const mode = document.getElementById('ship-mode').value;
+  const destination = mode === 'domestic'
+    ? document.getElementById('ship-state').value
+    : document.getElementById('ship-country').value;
+  const courier = document.getElementById('ship-courier').value;
+  const goodsType = document.getElementById('ship-goods-type')?.value || 'General Merchandise';
+  const goodsDescription = document.getElementById('ship-goods-desc')?.value || '';
+  const rateInput = document.getElementById('ship-courier-rate');
+  const note = document.getElementById('ship-rate-note');
+  const customerRateField = document.getElementById('ship-customer-rate');
+  if (!rateInput || !note) return;
+  if (!destination) {
+    rateInput.value = '';
+    note.textContent = mode === 'domestic' ? 'Select state to calculate' : 'Select country to calculate';
+    return;
+  }
+  if (!weight || weight <= 0) {
+    rateInput.value = '';
+    note.textContent = 'Enter weight to calculate';
+    return;
+  }
+  const rateInfo = getShipmentRateInfo({ mode, destination, weight, courier, goodsType, goodsDescription });
+  rateInput.value = '₹' + rateInfo.courierRate.toLocaleString('en-IN');
+  if (customerRateField && (!customerRateField.value || customerRateField.dataset.auto === 'true')) {
+    customerRateField.value = rateInfo.suggestedCustomerRate;
+    customerRateField.dataset.auto = 'true';
+  }
+  const restrictionNote = rateInfo.restrictedGoods
+    ? ` Restricted goods matched: ${rateInfo.restrictedMatches.join(', ')}.`
+    : '';
+  const serviceNote = courier === 'DTDC'
+    ? `${rateInfo.dtdcService} / ${rateInfo.dtdcTransport}`
+    : `${rateInfo.areaName} reference`;
+  note.textContent = `${courier} payable ₹${rateInfo.courierRate.toLocaleString('en-IN')} · Sell ₹${rateInfo.suggestedCustomerRate.toLocaleString('en-IN')} · ${serviceNote}.${restrictionNote}`;
+}
+
+function addShipment() {
+  const cn = document.getElementById('ship-cname').value.trim();
+  const tid = document.getElementById('ship-tid').value.trim();
+  const wt = document.getElementById('ship-weight').value;
+  const mode = document.getElementById('ship-mode').value;
+  const dest = mode === 'domestic' ? document.getElementById('ship-state').value : document.getElementById('ship-country').value;
+  const goodsType = document.getElementById('ship-goods-type').value;
+  const goodsDescription = document.getElementById('ship-goods-desc').value.trim();
+  const customerRateInput = parseFloat(document.getElementById('ship-customer-rate').value);
+  const courier = document.getElementById('ship-courier').value;
+  const date = document.getElementById('ship-date').value;
+  if (!cn || !tid || !wt || !dest || !date) { showToast('Please fill all fields','error'); return; }
+  const ships = DB.get('shipments') || [];
+  if (ships.find(s => s.trackingId === tid)) { showToast('Tracking ID already exists','error'); return; }
+  const rateInfo = getShipmentRateInfo({ mode, destination: dest, weight: parseFloat(wt), courier, goodsType, goodsDescription });
+  const finalCustomerRate = Number.isFinite(customerRateInput) ? Math.round(customerRateInput) : rateInfo.suggestedCustomerRate;
+  ships.push({
+    id: Date.now(),
+    customer: cn,
+    trackingId: tid,
+    weight: parseFloat(wt),
+    destination: dest,
+    courier,
+    date,
+    status: 'Pending',
+    customerRate: finalCustomerRate,
+    courierRate: rateInfo.courierRate,
+    profit: Math.round(finalCustomerRate - rateInfo.courierRate),
+    rateArea: rateInfo.areaName,
+    mode,
+    shipmentType: 'parcel',
+    goodsType,
+    goodsDescription,
+    dtdcService: rateInfo.dtdcService,
+    dtdcTransport: rateInfo.dtdcTransport,
+    restrictedGoods: rateInfo.restrictedGoods,
+    restrictedMatches: rateInfo.restrictedMatches
+  });
+  DB.set('shipments', ships);
+  closeModal('modal-add-shipment');
+  renderShipments();
+  showToast('Shipment added successfully!');
+  ['ship-cname','ship-tid','ship-weight','ship-customer-rate','ship-courier-rate','ship-goods-desc'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('ship-goods-type').value = 'General Merchandise';
+  document.getElementById('ship-customer-rate').dataset.auto = 'true';
+  document.getElementById('ship-mode').value = 'domestic';
+  toggleShipmentMode();
+  document.getElementById('ship-rate-note').textContent = 'Enter weight to calculate';
+}
+
+function viewShipment(id) {
+  selectedShipmentId = id;
+  const ships = DB.get('shipments') || [];
+  const s = ships.find(x => x.id === id);
+  if (!s) return;
+  document.getElementById('shipment-view-content').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13.5px;">
+      <div><label style="font-size:11px;color:var(--text-muted);font-weight:600;">TRACKING ID</label><p style="font-family:var(--mono);font-size:16px;font-weight:700;margin-top:4px;color:var(--primary);">${escapeHtml(s.trackingId)}</p></div>
+      <div><label style="font-size:11px;color:var(--text-muted);font-weight:600;">STATUS</label><p style="margin-top:4px;"><span class="badge badge-${statusBadgeClass(s.status)}">${escapeHtml(s.status)}</span></p></div>
+      <div><label style="font-size:11px;color:var(--text-muted);font-weight:600;">CUSTOMER</label><p style="margin-top:4px;font-weight:600;">${escapeHtml(s.customer)}</p></div>
+      <div><label style="font-size:11px;color:var(--text-muted);font-weight:600;">COURIER</label><p style="margin-top:4px;"><span class="badge badge-${String(s.courier || '').toLowerCase()}">${escapeHtml(s.courier)}</span></p></div>
+      <div><label style="font-size:11px;color:var(--text-muted);font-weight:600;">DESTINATION</label><p style="margin-top:4px;">${escapeHtml(s.destination)}</p></div>
+      <div><label style="font-size:11px;color:var(--text-muted);font-weight:600;">WEIGHT</label><p style="margin-top:4px;">${escapeHtml(s.weight)} kg</p></div>
+      <div><label style="font-size:11px;color:var(--text-muted);font-weight:600;">GOODS TYPE</label><p style="margin-top:4px;">${escapeHtml(s.goodsType || 'General Merchandise')}</p></div>
+      <div><label style="font-size:11px;color:var(--text-muted);font-weight:600;">DTDC SERVICE</label><p style="margin-top:4px;">${escapeHtml(s.dtdcService || 'Standard')}</p></div>
+      <div style="grid-column:1/-1;"><label style="font-size:11px;color:var(--text-muted);font-weight:600;">ITEM DESCRIPTION</label><p style="margin-top:4px;">${escapeHtml(s.goodsDescription || 'Not provided')}</p></div>
+      <div><label style="font-size:11px;color:var(--text-muted);font-weight:600;">TRANSPORT</label><p style="margin-top:4px;">${escapeHtml(s.dtdcTransport || 'Standard')}</p></div>
+      <div><label style="font-size:11px;color:var(--text-muted);font-weight:600;">COURIER RATE</label><p style="margin-top:4px;">₹${getShipmentFinance(s).courierCost.toLocaleString('en-IN')}</p></div>
+      <div><label style="font-size:11px;color:var(--text-muted);font-weight:600;">CUSTOMER RATE</label><p style="margin-top:4px;">₹${getShipmentFinance(s).customerCharge.toLocaleString('en-IN')}</p></div>
+      <div><label style="font-size:11px;color:var(--text-muted);font-weight:600;">PROFIT</label><p style="margin-top:4px;">₹${getShipmentFinance(s).profit.toLocaleString('en-IN')}</p></div>
+      <div><label style="font-size:11px;color:var(--text-muted);font-weight:600;">BOOKING DATE</label><p style="margin-top:4px;">${fmtDate(s.date)}</p></div>
+    </div>`;
+  openModal('modal-view-shipment');
+}
+
+function markDelivered() {
+  const ships = DB.get('shipments') || [];
+  const i = ships.findIndex(x=>x.id===selectedShipmentId);
+  if (i>-1) { ships[i].status='Delivered'; DB.set('shipments',ships); }
+  closeModal('modal-view-shipment');
+  renderShipments();
+  showToast('Marked as Delivered!');
+}
+
+function deleteShipment() {
+  if (!confirm('Delete this shipment?')) return;
+  let ships = DB.get('shipments') || [];
+  ships = ships.filter(x=>x.id!==selectedShipmentId);
+  DB.set('shipments', ships);
+  closeModal('modal-view-shipment');
+  renderShipments();
+  showToast('Shipment deleted','error');
+}
+
+let trackingShipmentId = null;
+let trackingShipmentCourier = null;
+let trackingShipmentNumber = null;
+
+function officialTrackingUrl(courier) {
+  return courier === 'DTDC'
+    ? 'https://www.dtdc.com/track-your-shipment/'
+    : 'https://www.trackon.in/NewSite/bulk-tracking.aspx';
+}
+
+function copyTextToClipboard(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    return navigator.clipboard.writeText(text);
+  }
+  const input = document.createElement('textarea');
+  input.value = text;
+  input.style.position = 'fixed';
+  input.style.opacity = '0';
+  document.body.appendChild(input);
+  input.select();
+  document.execCommand('copy');
+  input.remove();
+  return Promise.resolve();
+}
+
+function normalizeOfficialStatus(value) {
+  const text = String(value || '').toLowerCase();
+  if (text.includes('out for delivery') || text.includes('ofd')) return 'Out for Delivery';
+  if (text.includes('delivered')) return 'Delivered';
+  if (text.includes('in transit') || text.includes('transit') || text.includes('booked') || text.includes('picked') || text.includes('dispatched')) return 'Pending';
+  return '';
+}
+
+function trackShipment(tid, courier) {
+  const ships = DB.get('shipments') || [];
+  const shipment = ships.find(s => s.trackingId === tid);
+  trackingShipmentId = shipment?.id || null;
+  trackingShipmentCourier = courier;
+  trackingShipmentNumber = tid;
+  const url = officialTrackingUrl(courier);
+  copyTextToClipboard(tid)
+    .then(() => showToast('Tracking ID copied. Paste it on the official '+courier+' page.'))
+    .catch(() => showToast('Open official page and enter '+tid));
+  if (courier === 'DTDC') {
+    showToast('Trying automatic fetch from TrackCourier for DTDC.');
+  } else {
+    window.open(url, '_blank', 'noopener');
+  }
+  document.getElementById('track-status-text').value = '';
+  document.getElementById('track-auto-result').style.display = 'none';
+  document.getElementById('track-auto-result').innerHTML = '';
+  document.getElementById('track-modal-content').innerHTML = `
+    <p><strong>Tracking ID:</strong> <span style="font-family:var(--mono);background:var(--bg);padding:3px 8px;border-radius:5px;">${tid}</span></p>
+    <p><strong>Courier:</strong> ${courier}</p>
+    <p style="margin-top:8px;color:var(--text-muted);">${courier === 'DTDC' ? 'Use Fetch Auto Status to scrape the TrackCourier DTDC page. If it cannot detect a result, you can still paste the status manually.' : 'The official '+courier+' page opened in a new tab and the tracking ID was copied. Complete the official CAPTCHA/check there, then paste the status text here or click the matching status button.'}</p>
+    <p style="margin-top:8px;color:var(--text-muted);">Mapping: Delivered → Delivered, In Transit → Pending, Out for Delivery → Out for Delivery.</p>`;
+  openModal('modal-track-shipment');
+  if (courier === 'DTDC') {
+    fetchTrackedShipmentStatus();
+  }
+}
+
+async function fetchTrackedShipmentStatus() {
+  if (!trackingShipmentNumber || !trackingShipmentCourier) {
+    showToast('Tracking details missing','error');
+    return;
+  }
+  if (trackingShipmentCourier !== 'DTDC') {
+    showToast('Automatic fetching is currently enabled only for DTDC','error');
+    return;
+  }
+  const resultBox = document.getElementById('track-auto-result');
+  resultBox.style.display = 'block';
+  resultBox.innerHTML = '<strong>Checking TrackCourier...</strong><br><span style="color:var(--text-muted);">Fetching latest DTDC tracking status.</span>';
+  try {
+    const res = await fetch('api/track.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ courier: trackingShipmentCourier, trackingId: trackingShipmentNumber }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success || !data.status) {
+      resultBox.innerHTML = `<strong style="color:var(--danger);">Auto fetch could not detect a status.</strong><br><span style="color:var(--text-muted);">${data.message || data.error || 'You can still update the shipment manually.'}</span>${data.raw ? `<br><span style="color:var(--text-muted);">Tracker text: ${typeof data.raw === 'string' ? data.raw : JSON.stringify(data.raw)}</span>` : ''}`;
+      showToast('Automatic tracking fetch failed','error');
+      return;
+    }
+    resultBox.innerHTML = `<strong style="color:var(--success);">Detected status: ${data.status}</strong><br><span style="color:var(--text-muted);">${data.message || ''}</span>${data.status_text ? `<br><span style="color:var(--text-muted);">Raw status: ${data.status_text}</span>` : ''}`;
+    document.getElementById('track-status-text').value = data.status_text || data.status;
+    await updateTrackedShipmentStatus(data.status);
+  } catch (error) {
+    resultBox.innerHTML = `<strong style="color:var(--danger);">Tracking request failed.</strong><br><span style="color:var(--text-muted);">${error.message}</span>`;
+    showToast('Tracking request failed','error');
+  }
+}
+
+async function updateTrackedShipmentStatus(status) {
+  if (!trackingShipmentId) { showToast('Shipment not found','error'); return; }
+  const ships = DB.get('shipments') || [];
+  const i = ships.findIndex(s => s.id === trackingShipmentId);
+  if (i === -1) { showToast('Shipment not found','error'); return; }
+  ships[i].status = status;
+  const saved = await DB.set('shipments', ships);
+  if (!saved) return;
+  closeModal('modal-track-shipment');
+  renderShipments();
+  refreshDashboard();
+  renderDelivery();
+  showToast('Shipment status updated to '+status);
+}
+
+function applyTrackingStatusText() {
+  const status = normalizeOfficialStatus(document.getElementById('track-status-text').value);
+  if (!status) {
+    showToast('Status not recognized. Use Delivered, In Transit, or Out for Delivery.','error');
+    return;
+  }
+  updateTrackedShipmentStatus(status);
+}
+
+// ===================== CUSTOMERS =====================
+function renderCustomers(filter='') {
+  let data = DB.get('customers') || [];
+  if (filter) data = data.filter(c =>
+    c.name.toLowerCase().includes(filter.toLowerCase()) ||
+    c.phone.includes(filter) || c.city.toLowerCase().includes(filter.toLowerCase())
+  );
+  document.getElementById('cust-count').textContent = '('+data.length+')';
+  const tbody = document.getElementById('customers-tbody');
+  tbody.innerHTML = '';
+  data.forEach(c => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td style="font-weight:600;">${c.name}</td>
+      <td><a href="tel:${c.phone}" style="color:var(--primary);text-decoration:none;">${c.phone}</a></td>
+      <td>${c.address}</td><td>${c.city}</td>
+      <td><span style="font-family:var(--mono);font-size:12px;background:var(--bg);padding:2px 7px;border-radius:4px;">${c.pincode}</span></td>
+      <td><button class="btn btn-danger btn-sm" onclick="deleteCustomer(${c.id})">🗑</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+function filterCustomers(v) { renderCustomers(v); }
+function addCustomer() {
+  const name=document.getElementById('cust-name').value.trim();
+  const phone=document.getElementById('cust-phone').value.trim();
+  const addr=document.getElementById('cust-addr').value.trim();
+  const city=document.getElementById('cust-city').value.trim();
+  const pin=document.getElementById('cust-pin').value.trim();
+  if (!name||!phone||!city||!pin) { showToast('Please fill required fields','error'); return; }
+  const custs = DB.get('customers') || [];
+  custs.push({ id:Date.now(), name, phone, address:addr, city, pincode:pin });
+  DB.set('customers', custs);
+  closeModal('modal-add-customer');
+  renderCustomers();
+  showToast('Customer added!');
+  ['cust-name','cust-phone','cust-addr','cust-city','cust-pin'].forEach(id => document.getElementById(id).value='');
+}
+function deleteCustomer(id) {
+  if (!confirm('Delete this customer?')) return;
+  let custs = DB.get('customers') || [];
+  custs = custs.filter(c=>c.id!==id);
+  DB.set('customers', custs);
+  renderCustomers();
+  showToast('Customer deleted','error');
+}
+
+// ===================== QUOTATIONS =====================
+let selectedQuoteId = null;
+let quoteRowCount = 0;
+
+function initQuoteRows() {
+  document.getElementById('qt-rows').innerHTML = `
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;margin-bottom:8px;font-size:12px;font-weight:600;color:var(--text-muted);">
+      <span>Description</span><span>Qty</span><span>Rate (₹)</span><span></span>
+    </div>`;
+  quoteRowCount = 0;
+  addQuoteRow();
+}
+
+function addQuoteRow() {
+  quoteRowCount++;
+  const id = 'qr_'+quoteRowCount;
+  const div = document.createElement('div');
+  div.id = id;
+  div.style.cssText = 'display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;margin-bottom:6px;';
+  div.innerHTML = `
+    <input type="text" class="form-control" placeholder="Item description" style="padding:8px 10px;">
+    <input type="number" class="form-control qr-qty" placeholder="1" min="1" value="1" style="padding:8px 10px;" oninput="calcQuoteTotal()">
+    <input type="number" class="form-control qr-rate" placeholder="0" min="0" step="0.5" style="padding:8px 10px;" oninput="calcQuoteTotal()">
+    <button class="btn btn-danger btn-sm" style="padding:8px;" onclick="removeQRow('${id}')">✕</button>`;
+  document.getElementById('qt-rows').appendChild(div);
+}
+function removeQRow(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+  calcQuoteTotal();
+}
+function calcQuoteTotal() {
+  const qtys = document.querySelectorAll('.qr-qty');
+  const rates = document.querySelectorAll('.qr-rate');
+  let total = 0;
+  qtys.forEach((q,i) => { total += (parseFloat(q.value)||0) * (parseFloat(rates[i]?.value)||0); });
+  document.getElementById('qt-total').textContent = total.toFixed(0);
+}
+
+function renderQuotations(filter='') {
+  let data = DB.get('quotations') || [];
+  if (filter) data = data.filter(q => q.customer.toLowerCase().includes(filter.toLowerCase()));
+  document.getElementById('quote-count').textContent = '('+data.length+')';
+  const tbody = document.getElementById('quotations-tbody');
+  tbody.innerHTML = '';
+  data.forEach(q => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><span style="font-family:var(--mono);font-size:12px;background:var(--bg);padding:2px 7px;border-radius:4px;">#${String(q.id).slice(-4)}</span></td>
+      <td style="font-weight:600;">${q.customer}</td>
+      <td>${fmtDate(q.date)}</td>
+      <td>${q.rows.length} items</td>
+      <td style="font-weight:700;color:var(--primary);">₹${q.total}</td>
+      <td>
+        <button class="btn btn-outline btn-sm" onclick="viewQuotation(${q.id})">View</button>
+        ${currentUser?.role==='Admin' ? `<button class="btn btn-danger btn-sm" onclick="delQuote(${q.id})" style="margin-left:4px;">🗑</button>` : ''}
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+function filterQuotations(v) { renderQuotations(v); }
+
+function openNewQuote() {
+  initQuoteRows();
+  document.getElementById('qt-date').value = todayStr();
+  document.getElementById('qt-cname').value = '';
+  openModal('modal-new-quote');
+}
+
+async function saveQuotation() {
+  const customer = document.getElementById('qt-cname').value.trim();
+  const date = document.getElementById('qt-date').value;
+  if (!customer) { showToast('Enter customer name','error'); return; }
+  if (!date) { showToast('Select quotation date','error'); return; }
+  const rows = [];
+  document.querySelectorAll('#qt-rows > div:not(:first-child)').forEach(div => {
+    const inputs = div.querySelectorAll('input');
+    if (inputs[0] && inputs[1] && inputs[2]) {
+      const desc = inputs[0].value.trim();
+      const qty = parseFloat(inputs[1].value)||1;
+      const rate = parseFloat(inputs[2].value)||0;
+      if (desc) rows.push({ desc, qty, rate });
+    }
+  });
+  if (!rows.length) { showToast('Add at least one item','error'); return; }
+  const saveBtn = document.getElementById('quote-save-btn');
+  if (saveBtn) saveBtn.disabled = true;
+  const total = rows.reduce((sum,r) => sum + r.qty*r.rate, 0);
+  const quotes = DB.get('quotations') || [];
+  quotes.push({ id:Date.now(), customer, date, rows, total:Math.round(total) });
+  const saved = await DB.set('quotations', quotes);
+  if (saveBtn) saveBtn.disabled = false;
+  if (!saved) return;
+  closeModal('modal-new-quote');
+  renderQuotations();
+  refreshDashboard();
+  showToast('Quotation saved!');
+}
+
+function viewQuotation(id) {
+  selectedQuoteId = id;
+  const quotes = DB.get('quotations') || [];
+  const q = quotes.find(x=>x.id===id);
+  if (!q) return;
+  let rowsHtml = q.rows.map(r => `<tr><td>${r.desc}</td><td style="text-align:center;">${r.qty}</td><td style="text-align:right;">₹${r.rate}</td><td style="text-align:right;font-weight:600;">₹${r.qty*r.rate}</td></tr>`).join('');
+  document.getElementById('quote-view-content').innerHTML = `
+    <div style="display:flex;justify-content:space-between;margin-bottom:16px;">
+      <div><p style="font-size:11px;color:var(--text-muted);font-weight:600;">CUSTOMER</p><p style="font-weight:700;font-size:16px;">${q.customer}</p></div>
+      <div style="text-align:right;"><p style="font-size:11px;color:var(--text-muted);font-weight:600;">DATE</p><p style="font-weight:600;">${fmtDate(q.date)}</p></div>
+    </div>
+    <table class="quote-table" style="margin-bottom:12px;">
+      <thead><tr><th>Description</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Rate</th><th style="text-align:right;">Amount</th></tr></thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>
+    <div class="quote-total">Total: ₹${q.total}</div>`;
+  if (currentUser?.role==='Admin') document.getElementById('quote-delete-btn').style.display='';
+  else document.getElementById('quote-delete-btn').style.display='none';
+  openModal('modal-view-quote');
+}
+
+function deleteQuote() {
+  if (!confirm('Delete this quotation?')) return;
+  let quotes = DB.get('quotations') || [];
+  quotes = quotes.filter(q=>q.id!==selectedQuoteId);
+  DB.set('quotations', quotes);
+  closeModal('modal-view-quote');
+  renderQuotations();
+  showToast('Quotation deleted','error');
+}
+function delQuote(id) {
+  if (!confirm('Delete?')) return;
+  let quotes = DB.get('quotations') || [];
+  quotes = quotes.filter(q=>q.id!==id);
+  DB.set('quotations', quotes);
+  renderQuotations();
+  showToast('Deleted','error');
+}
+function printQuote() {
+  const c=document.getElementById('qt-cname').value||'Customer';
+  const t=document.getElementById('qt-total').textContent;
+  showToast('Print preview opened for '+c+' — Total ₹'+t);
+  window.print();
+}
+function printQuoteView() { window.print(); }
+
+// ===================== DELIVERY =====================
+let scannerRunning = false;
+function renderDelivery() {
+  const deliveries = DB.get('deliveries') || [];
+  const ships = DB.get('shipments') || [];
+  const today = todayStr();
+  const todayShips = ships.filter(s=>s.date===today);
+
+  const dtdcTotal = todayShips.filter(s=>s.courier==='DTDC').length;
+  const tracTotal = todayShips.filter(s=>s.courier==='Trackon').length;
+  const dtdcDone = todayShips.filter(s=>s.courier==='DTDC'&&s.status==='Delivered').length;
+  const tracDone = todayShips.filter(s=>s.courier==='Trackon'&&s.status==='Delivered').length;
+
+  document.getElementById('del-dtdc-total').textContent = dtdcTotal;
+  document.getElementById('del-dtdc-done').textContent = dtdcDone;
+  document.getElementById('del-dtdc-rem').textContent = Math.max(0,dtdcTotal-dtdcDone);
+  document.getElementById('del-trac-total').textContent = tracTotal;
+  document.getElementById('del-trac-done').textContent = tracDone;
+  document.getElementById('del-trac-rem').textContent = Math.max(0,tracTotal-tracDone);
+
+  document.getElementById('del-dtdc-bar').style.width = dtdcTotal ? Math.round(dtdcDone/dtdcTotal*100)+'%' : '0%';
+  document.getElementById('del-trac-bar').style.width = tracTotal ? Math.round(tracDone/tracTotal*100)+'%' : '0%';
+
+  const tbody = document.getElementById('delivery-tbody');
+  tbody.innerHTML = '';
+  deliveries.forEach(d => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td style="font-family:var(--mono);font-size:12px;">${d.trackingId}</td>
+      <td><span class="badge badge-${d.courier.toLowerCase()}">${d.courier}</span></td>
+      <td style="color:var(--text-muted);font-size:12px;">${d.addedAt}</td>
+      <td><span class="badge badge-${d.status.toLowerCase()}">${d.status}</span></td>
+      <td>
+        ${d.status==='Pending'?`<button class="btn btn-success btn-sm" onclick="markDeliveryDone('${d.id}')">✓ Done</button>`:''}
+        <button class="btn btn-danger btn-sm" onclick="removeDelivery('${d.id}')" style="margin-left:4px;">✕</button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function addToDelivery() {
+  const tid = document.getElementById('scan-tracking').value.trim();
+  const courier = document.getElementById('scan-courier').value;
+  if (!tid) { showToast('Enter tracking ID','error'); return; }
+  const dels = DB.get('deliveries') || [];
+  if (dels.find(d=>d.trackingId===tid)) { showToast('Already in delivery list'); return; }
+  dels.push({ id:Date.now().toString(), trackingId:tid, courier, status:'Pending', addedAt:new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) });
+  DB.set('deliveries', dels);
+  document.getElementById('scan-tracking').value='';
+  renderDelivery();
+  showToast('Added to delivery list!');
+}
+
+function markDeliveryDone(id) {
+  const dels = DB.get('deliveries') || [];
+  const i = dels.findIndex(d=>d.id===id);
+  if (i>-1) dels[i].status='Delivered';
+  DB.set('deliveries', dels);
+  renderDelivery();
+  showToast('Marked as delivered!');
+}
+function removeDelivery(id) {
+  let dels = DB.get('deliveries') || [];
+  dels = dels.filter(d=>d.id!==id);
+  DB.set('deliveries', dels);
+  renderDelivery();
+  showToast('Removed from list');
+}
+
+function toggleScanner() {
+  if (scannerRunning) { stopScanner(); return; }
+  document.getElementById('scanner-video-wrap').style.display='block';
+  scannerRunning = true;
+  if (typeof Quagga !== 'undefined') {
+    Quagga.init({ inputStream:{ name:'Live', type:'LiveStream', target:document.getElementById('scanner-area'), constraints:{ facingMode:'environment' } }, decoder:{ readers:['code_128_reader','ean_reader','code_39_reader'] } }, err => {
+      if (!err) Quagga.start();
+      else { stopScanner(); showToast('Camera not available','error'); }
+    });
+    Quagga.onDetected(data => {
+      document.getElementById('scan-tracking').value = data.codeResult.code;
+      stopScanner();
+      showToast('Barcode scanned: '+data.codeResult.code);
+    });
+  } else {
+    setTimeout(() => {
+      const fakeCode = 'DTDC'+Math.floor(Math.random()*900000+100000);
+      document.getElementById('scan-tracking').value = fakeCode;
+      stopScanner();
+      showToast('Simulated scan: '+fakeCode);
+    }, 2000);
+  }
+}
+function stopScanner() {
+  scannerRunning = false;
+  document.getElementById('scanner-video-wrap').style.display='none';
+  try { if (typeof Quagga!=='undefined') Quagga.stop(); } catch(e){}
+}
+
+let quaggaDetectedHandler = null;
+
+function getShipmentByTrackingId(trackingId) {
+  const ships = DB.get('shipments') || [];
+  return ships.find(s => String(s.trackingId || '').toUpperCase() === String(trackingId || '').toUpperCase()) || null;
+}
+
+function getCustomerByName(name) {
+  const customers = DB.get('customers') || [];
+  return customers.find(c => String(c.name || '').trim().toLowerCase() === String(name || '').trim().toLowerCase()) || null;
+}
+
+function inferCourierFromTrackingId(trackingId) {
+  const value = String(trackingId || '').toUpperCase();
+  if (value.startsWith('D') || value.includes('DTDC')) return 'DTDC';
+  return 'Trackon';
+}
+
+function getPhoneCameraHelpMessage() {
+  return `Live Scan can only use the camera of the device that has this page open.
+If this page is open on your PC, it will use the PC camera, not a phone camera over USB.
+To use your phone camera, open this same page on the phone browser.
+Best options:
+1. Open the app directly on your phone browser.
+2. Use Phone Camera / Upload to capture a parcel photo or screenshot.
+3. If you must stay on the PC, use a phone-as-webcam app like DroidCam or IP Webcam.`;
+}
+
+function getDeliveryMeta(trackingId, selectedCourier = '') {
+  const shipment = getShipmentByTrackingId(trackingId);
+  const customer = shipment ? getCustomerByName(shipment.customer) : null;
+  const courier = shipment?.courier || selectedCourier || inferCourierFromTrackingId(trackingId);
+  return {
+    shipment,
+    customer,
+    courier,
+    customerName: shipment?.customer || customer?.name || 'Walk-in Customer',
+    customerPhone: customer?.phone || shipment?.phone || '',
+    destination: shipment?.destination || customer?.city || ''
+  };
+}
+
+function setDeliveryImportStatus(message, tone = 'info') {
+  const box = document.getElementById('delivery-import-status');
+  if (!box) return;
+  if (!message) {
+    box.style.display = 'none';
+    box.innerHTML = '';
+    return;
+  }
+  const styles = {
+    info: { bg: '#f8fafc', border: 'var(--border)', color: 'var(--text)' },
+    success: { bg: '#ecfdf5', border: '#86efac', color: '#166534' },
+    warning: { bg: '#fff7ed', border: '#fdba74', color: '#9a3412' },
+    error: { bg: '#fef2f2', border: '#fca5a5', color: '#991b1b' }
+  };
+  const style = styles[tone] || styles.info;
+  box.style.display = 'block';
+  box.style.background = style.bg;
+  box.style.borderColor = style.border;
+  box.style.color = style.color;
+  box.innerHTML = message;
+}
+
+function addDeliveryEntry(trackingId, preferredCourier = '', source = 'Manual') {
+  const normalizedId = String(trackingId || '').trim().toUpperCase();
+  if (!normalizedId) return { status: 'empty' };
+  const deliveries = DB.get('deliveries') || [];
+  if (deliveries.find(d => String(d.trackingId || '').toUpperCase() === normalizedId)) {
+    return { status: 'duplicate', trackingId: normalizedId };
+  }
+  const meta = getDeliveryMeta(normalizedId, preferredCourier);
+  deliveries.push({
+    id: Date.now().toString() + Math.random().toString(16).slice(2, 6),
+    trackingId: normalizedId,
+    courier: meta.courier,
+    customer: meta.customerName,
+    phone: meta.customerPhone,
+    destination: meta.destination,
+    status: 'Pending',
+    source,
+    addedAt: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+  });
+  DB.set('deliveries', deliveries);
+  return { status: 'added', trackingId: normalizedId, meta };
+}
+
+function renderDelivery() {
+  const deliveries = DB.get('deliveries') || [];
+  const ships = DB.get('shipments') || [];
+  const today = todayStr();
+  const todayShips = ships.filter(s => s.date === today);
+
+  const dtdcTotal = todayShips.filter(s => s.courier === 'DTDC').length;
+  const tracTotal = todayShips.filter(s => s.courier === 'Trackon').length;
+  const dtdcDone = todayShips.filter(s => s.courier === 'DTDC' && s.status === 'Delivered').length;
+  const tracDone = todayShips.filter(s => s.courier === 'Trackon' && s.status === 'Delivered').length;
+
+  document.getElementById('del-dtdc-total').textContent = dtdcTotal;
+  document.getElementById('del-dtdc-done').textContent = dtdcDone;
+  document.getElementById('del-dtdc-rem').textContent = Math.max(0, dtdcTotal - dtdcDone);
+  document.getElementById('del-trac-total').textContent = tracTotal;
+  document.getElementById('del-trac-done').textContent = tracDone;
+  document.getElementById('del-trac-rem').textContent = Math.max(0, tracTotal - tracDone);
+  document.getElementById('del-dtdc-bar').style.width = dtdcTotal ? Math.round(dtdcDone / dtdcTotal * 100) + '%' : '0%';
+  document.getElementById('del-trac-bar').style.width = tracTotal ? Math.round(tracDone / tracTotal * 100) + '%' : '0%';
+
+  const tbody = document.getElementById('delivery-tbody');
+  tbody.innerHTML = deliveries.length ? '' : '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text-muted);">No delivery items added yet</td></tr>';
+  deliveries.forEach(d => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td style="font-family:var(--mono);font-size:12px;">${escapeHtml(d.trackingId)}</td>
+      <td style="font-family:var(--mono);font-size:12px;">${escapeHtml(d.trackingId)}</td>
+      <td>${d.phone ? `<a href="tel:${escapeHtml(d.phone)}" style="color:var(--primary);text-decoration:none;">${escapeHtml(d.phone)}</a>` : '<span style="color:var(--text-muted);">Not saved</span>'}</td>
+      <td><div class="signature-cell"></div></td>
+      <td>
+        ${d.status === 'Pending' ? `<button class="btn btn-success btn-sm" onclick="markDeliveryDone('${d.id}')">Done</button>` : ''}
+        <button class="btn btn-danger btn-sm" onclick="removeDelivery('${d.id}')" style="margin-left:4px;">Remove</button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function addToDelivery() {
+  const tid = document.getElementById('scan-tracking').value.trim();
+  const courier = document.getElementById('scan-courier').value;
+  if (!tid) { showToast('Enter tracking ID','error'); return; }
+  const result = addDeliveryEntry(tid, courier, 'Manual');
+  if (result.status === 'duplicate') { showToast('Already in delivery list'); return; }
+  document.getElementById('scan-tracking').value = '';
+  renderDelivery();
+  showToast('Added to delivery list!');
+}
+
+function markDeliveryDone(id) {
+  const dels = DB.get('deliveries') || [];
+  const i = dels.findIndex(d => d.id === id);
+  if (i > -1) dels[i].status = 'Delivered';
+  DB.set('deliveries', dels);
+  renderDelivery();
+  showToast('Marked as delivered!');
+}
+
+function removeDelivery(id) {
+  let dels = DB.get('deliveries') || [];
+  dels = dels.filter(d => d.id !== id);
+  DB.set('deliveries', dels);
+  renderDelivery();
+  showToast('Removed from list');
+}
+
+function toggleScanner() {
+  if (scannerRunning) { stopScanner(); return; }
+  if (!window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+    setDeliveryImportStatus(getPhoneCameraHelpMessage().replace(/\n/g, '<br>'), 'warning');
+    showToast('Camera needs HTTPS or localhost on the current device','error');
+    return;
+  }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    setDeliveryImportStatus(getPhoneCameraHelpMessage().replace(/\n/g, '<br>'), 'warning');
+    showToast('Camera access is not available in this browser','error');
+    return;
+  }
+  document.getElementById('scanner-video-wrap').style.display = 'block';
+  scannerRunning = true;
+  if (typeof Quagga !== 'undefined') {
+    Quagga.init({
+      inputStream: {
+        name: 'Live',
+        type: 'LiveStream',
+        target: document.getElementById('scanner-area'),
+        constraints: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      },
+      decoder: { readers: ['code_128_reader', 'ean_reader', 'code_39_reader'] }
+    }, err => {
+      if (!err) {
+        Quagga.start();
+        setDeliveryImportStatus('', 'info');
+      } else {
+        stopScanner();
+        setDeliveryImportStatus(getPhoneCameraHelpMessage().replace(/\n/g, '<br>'), 'warning');
+        showToast('Camera not available on this device/browser','error');
+      }
+    });
+    quaggaDetectedHandler = data => {
+      document.getElementById('scan-tracking').value = data.codeResult.code;
+      stopScanner();
+      showToast('Barcode scanned: ' + data.codeResult.code);
+    };
+    Quagga.onDetected(quaggaDetectedHandler);
+  } else {
+    setDeliveryImportStatus(getPhoneCameraHelpMessage().replace(/\n/g, '<br>'), 'warning');
+    showToast('Live scanner unavailable. Use Phone Camera / Upload instead.','error');
+    stopScanner();
+  }
+}
+
+function stopScanner() {
+  scannerRunning = false;
+  document.getElementById('scanner-video-wrap').style.display = 'none';
+  try {
+    if (typeof Quagga !== 'undefined') {
+      if (quaggaDetectedHandler && typeof Quagga.offDetected === 'function') {
+        Quagga.offDetected(quaggaDetectedHandler);
+        quaggaDetectedHandler = null;
+      }
+      Quagga.stop();
+    }
+  } catch (e) {}
+}
+
+function openDeliveryCamera() {
+  document.getElementById('delivery-image-input')?.click();
+}
+
+async function handleDeliveryImageUpload(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  await processDeliveryImage(file);
+  event.target.value = '';
+}
+
+function fileToImageElement(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(img);
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+function normalizeTrackingToken(value) {
+  return String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+function extractTrackingIdsFromText(text) {
+  const found = new Set();
+  const shipments = DB.get('shipments') || [];
+  const compactText = normalizeTrackingToken(text);
+
+  shipments.forEach(ship => {
+    const normalizedId = normalizeTrackingToken(ship.trackingId);
+    if (normalizedId && compactText.includes(normalizedId)) {
+      found.add(String(ship.trackingId).toUpperCase());
+    }
+  });
+
+  const tokenMatches = String(text || '').toUpperCase().match(/[A-Z0-9-]{8,24}/g) || [];
+  tokenMatches.forEach(token => {
+    const cleaned = normalizeTrackingToken(token);
+    if (cleaned.length >= 8) found.add(cleaned);
+  });
+
+  return Array.from(found);
+}
+
+async function extractTrackingIdsFromImage(file) {
+  const ids = new Set();
+  if ('BarcodeDetector' in window) {
+    try {
+      const detector = new BarcodeDetector({ formats: ['code_128', 'code_39', 'ean_13', 'ean_8', 'upc_a', 'upc_e'] });
+      const image = await fileToImageElement(file);
+      const barcodes = await detector.detect(image);
+      barcodes.forEach(code => {
+        const value = String(code.rawValue || '').trim();
+        if (value) ids.add(value.toUpperCase());
+      });
+    } catch (error) {}
+  }
+
+  try {
+    if (typeof Tesseract !== 'undefined') {
+      const result = await Tesseract.recognize(file, 'eng', {
+        logger: message => {
+          if (message.status === 'recognizing text') {
+            setDeliveryImportStatus(`Reading tracking IDs from image... ${Math.round((message.progress || 0) * 100)}%`, 'info');
+          }
+        }
+      });
+      extractTrackingIdsFromText(result.data?.text || '').forEach(id => ids.add(id));
+    }
+  } catch (error) {
+    console.warn('OCR failed', error);
+  }
+
+  return Array.from(ids);
+}
+
+function addMultipleToDelivery(trackingIds, preferredCourier = '') {
+  const summary = { added: [], duplicate: [], skipped: [] };
+  trackingIds.forEach(id => {
+    const result = addDeliveryEntry(id, preferredCourier, 'Image Import');
+    if (result.status === 'added') summary.added.push(result.trackingId);
+    else if (result.status === 'duplicate') summary.duplicate.push(result.trackingId);
+    else summary.skipped.push(id);
+  });
+  return summary;
+}
+
+async function processDeliveryImage(file) {
+  setDeliveryImportStatus('Scanning image for barcodes and tracking IDs...', 'info');
+  const trackingIds = await extractTrackingIdsFromImage(file);
+  if (!trackingIds.length) {
+    setDeliveryImportStatus('No tracking IDs were detected in that image. Try a clearer screenshot or parcel photo.', 'error');
+    showToast('No tracking IDs found','error');
+    return;
+  }
+  const summary = addMultipleToDelivery(trackingIds, document.getElementById('scan-courier').value);
+  renderDelivery();
+  const lines = [];
+  if (summary.added.length) lines.push(`<strong>Added:</strong> ${summary.added.map(escapeHtml).join(', ')}`);
+  if (summary.duplicate.length) lines.push(`<strong>Already in list:</strong> ${summary.duplicate.map(escapeHtml).join(', ')}`);
+  if (summary.skipped.length) lines.push(`<strong>Skipped:</strong> ${summary.skipped.map(escapeHtml).join(', ')}`);
+  setDeliveryImportStatus(lines.join('<br>'), summary.added.length ? 'success' : 'warning');
+  showToast(summary.added.length ? `Imported ${summary.added.length} delivery item(s)` : 'No new items added');
+}
+
+function exportDeliverySheet() {
+  const deliveries = DB.get('deliveries') || [];
+  if (!deliveries.length) { showToast('No delivery items to export','error'); return; }
+  const rows = deliveries.map((delivery, index) => {
+    const meta = getDeliveryMeta(delivery.trackingId, delivery.courier);
+    return `<tr>
+      <td>${index + 1}</td>
+      <td>${escapeHtml(delivery.trackingId)}</td>
+      <td>${escapeHtml(delivery.trackingId)}</td>
+      <td style="mso-number-format:'\\@';">${escapeHtml(meta.customerPhone || '')}</td>
+      <td style="width:180px;"></td>
+      <td style="width:160px;"></td>
+    </tr>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html>
+  <html>
+  <head>
+    <meta charset="UTF-8">
+    <style>
+      table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; }
+      th, td { border: 1px solid #cbd5e1; padding: 8px; font-size: 12px; }
+      th { background: #eff6ff; text-align: left; }
+      h2 { font-family: Arial, sans-serif; margin-bottom: 4px; }
+      p { font-family: Arial, sans-serif; color: #475569; margin-top: 0; }
+    </style>
+  </head>
+  <body>
+    <h2>Delivery Sheet</h2>
+    <p>Date: ${escapeHtml(todayStr())}</p>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Tracking ID</th>
+          <th>Barcode</th>
+          <th>Contact Number</th>
+          <th>Customer Signature</th>
+          <th>Remarks</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </body>
+  </html>`;
+
+  const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `delivery-sheet-${todayStr()}.xls`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  showToast('Delivery sheet exported');
+}
+
+// ===================== BOOKING =====================
+let bookingChart;
+function renderBooking() {
+  const ships = DB.get('shipments') || [];
+  const today = todayStr();
+  const todayShips = ships.filter(s=>s.date===today);
+  const dtdc = todayShips.filter(s=>s.courier==='DTDC').length;
+  const trackon = todayShips.filter(s=>s.courier==='Trackon').length;
+  const total = dtdc + trackon || 1;
+  document.getElementById('book-dtdc').textContent = dtdc;
+  document.getElementById('book-trackon').textContent = trackon;
+  document.getElementById('book-dtdc-bar').style.width = Math.round(dtdc/total*100)+'%';
+  document.getElementById('book-trackon-bar').style.width = Math.round(trackon/total*100)+'%';
+
+  if (!hasCharts()) {
+    renderChartFallback('bookingChart', 'Weekly booking chart is unavailable offline until Chart.js is stored locally.');
+  } else {
+    clearChartFallback('bookingChart');
+  }
+
+  // Weekly trend
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const dtdcData=[], tracData=[];
+  for(let i=6;i>=0;i--) {
+    const d=todayMinus(i);
+    const dayShips = ships.filter(s=>s.date===d);
+    dtdcData.push(dayShips.filter(s=>s.courier==='DTDC').length);
+    tracData.push(dayShips.filter(s=>s.courier==='Trackon').length);
+  }
+
+  if (hasCharts()) {
+    if (bookingChart) bookingChart.destroy();
+    bookingChart = new Chart(document.getElementById('bookingChart'), {
+      type:'line',
+      data:{ labels:days, datasets:[
+        { label:'DTDC', data:dtdcData, borderColor:'#e67e22', backgroundColor:'rgba(230,126,34,0.1)', fill:true, tension:0.4, pointBackgroundColor:'#e67e22' },
+        { label:'Trackon', data:tracData, borderColor:'#1a6ef5', backgroundColor:'rgba(26,110,245,0.1)', fill:true, tension:0.4, pointBackgroundColor:'#1a6ef5' },
+      ]},
+      options:{ responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ position:'top', labels:{ font:{size:11}, usePointStyle:true, pointStyleWidth:8 } } },
+        scales:{ y:{ beginAtZero:true }, x:{ ticks:{ font:{size:11} } } }
+      }
+    });
+  }
+
+  // History table
+  const tbody = document.getElementById('booking-tbody');
+  tbody.innerHTML = '';
+  for(let i=6;i>=0;i--) {
+    const d=todayMinus(i);
+    const ds=ships.filter(s=>s.date===d);
+    const dd=ds.filter(s=>s.courier==='DTDC').length;
+    const dt=ds.filter(s=>s.courier==='Trackon').length;
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${fmtDate(d)}${i===0?' <span class="badge" style="background:var(--primary-light);color:var(--primary);font-size:10px;">Today</span>':''}</td>
+      <td style="font-weight:600;color:var(--dtdc);">${dd}</td>
+      <td style="font-weight:600;color:var(--trackon);">${dt}</td>
+      <td style="font-weight:700;">${dd+dt}</td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+// ===================== PINCODE =====================
+let pincodeLookupCache = null;
+let pincodeLookupPromise = null;
+
+async function loadPincodeLookup() {
+  if (pincodeLookupCache) return pincodeLookupCache;
+  if (!pincodeLookupPromise) {
+    pincodeLookupPromise = fetch('pincode_lookup.json', { cache: 'no-store' })
+      .then(res => {
+        if (!res.ok) throw new Error('Could not load pincode lookup');
+        return res.json();
+      })
+      .then(data => {
+        pincodeLookupCache = data;
+        const summary = document.getElementById('pincode-summary');
+        if (summary && data?.count) {
+          summary.innerHTML = `Smart pincode lookup is ready with <strong>${Number(data.count).toLocaleString('en-IN')}</strong> pincodes from the latest DTDC and Trackon sheets. DTDC is marked serviceable only when delivery status is <strong>All Goods</strong>.`;
+        }
+        return data;
+      })
+      .catch(error => {
+        pincodeLookupPromise = null;
+        throw error;
+      });
+  }
+  return pincodeLookupPromise;
+}
+
+async function checkPincode() {
+  const pin = document.getElementById('pincode-input').value.trim();
+  if (!/^\d{6}$/.test(pin)) { showToast('Enter valid 6-digit pincode','error'); return; }
+  const result = document.getElementById('pincode-result');
+  result.style.display = 'block';
+  result.innerHTML = `<div class="pincode-row"><span class="courier-name">Checking ${pin}</span><span class="avail" style="color:var(--primary);">Loading…</span></div>`;
+
+  try {
+    const lookup = await loadPincodeLookup();
+    const info = lookup?.items?.[pin];
+    if (!info) {
+      result.innerHTML = `<div class="pincode-row unavailable">
+        <span class="courier-name">⚠️ Pincode ${pin}</span>
+        <span class="avail" style="color:var(--danger);">Not found in the current courier sheets</span>
+      </div>`;
+      return;
+    }
+
+    const cityLabel = [info.city, info.state].filter(Boolean).join(', ');
+    const dtdc = info.dtdc || { serviceable: false };
+    const trackon = info.trackon || { serviceable: false };
+    result.innerHTML = `
+      <div class="pincode-meta">Results for <strong>${pin}</strong>${cityLabel ? ` — ${cityLabel}` : ''}</div>
+      <div class="pincode-row ${dtdc.serviceable ? 'available' : 'unavailable'}">
+        <span class="courier-name"><span class="badge badge-dtdc" style="margin-right:8px;">DTDC</span>DTDC Courier</span>
+        <span class="avail" style="color:${dtdc.serviceable ? 'var(--success)' : 'var(--danger)'};">${dtdc.serviceable ? '✓ Available' : '✕ Not Available'}</span>
+      </div>
+      <div class="pincode-meta" style="margin-top:-2px;">DTDC delivery status: <strong>${dtdc.deliveryStatus || 'No record'}</strong>${dtdc.pickupStatus ? ` | Pickup: ${dtdc.pickupStatus}` : ''}</div>
+      <div class="pincode-row ${trackon.serviceable ? 'available' : 'unavailable'}">
+        <span class="courier-name"><span class="badge badge-trackon" style="margin-right:8px;">Trackon</span>Trackon Courier</span>
+        <span class="avail" style="color:${trackon.serviceable ? 'var(--success)' : 'var(--danger)'};">${trackon.serviceable ? '✓ Available' : '✕ Not Available'}</span>
+      </div>
+      <div class="pincode-meta" style="margin-top:-2px;">Trackon checks: Dox ${trackon.dox ? 'Y' : 'N'} | NonDox ${trackon.nonDox ? 'Y' : 'N'} | Pickup ${trackon.pickup ? 'Y' : 'N'} | Prime ${trackon.primeTrack ? 'Y' : 'N'} | Road ${trackon.roadExpress ? 'Y' : 'N'}</div>`;
+    showToast('Pincode check completed!');
+  } catch (error) {
+    result.innerHTML = `<div class="pincode-row unavailable">
+      <span class="courier-name">⚠️ Lookup unavailable</span>
+      <span class="avail" style="color:var(--danger);">Could not load pincode data</span>
+    </div>`;
+    showToast('Could not load pincode lookup','error');
+  }
+}
+
+// ===================== EMPLOYEES =====================
+function renderEmployees(filter='') {
+  let data = DB.get('users') || [];
+  if (filter) data = data.filter(e => e.name.toLowerCase().includes(filter.toLowerCase()) || e.username.includes(filter));
+  document.getElementById('emp-count').textContent = '('+data.length+')';
+  const tbody = document.getElementById('employees-tbody');
+  tbody.innerHTML = '';
+  data.forEach(e => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td style="font-weight:600;">${e.name}</td>
+      <td><span style="font-family:var(--mono);font-size:12px;background:var(--bg);padding:2px 7px;border-radius:4px;">@${e.username}</span></td>
+      <td><span class="badge badge-${e.role.toLowerCase()}">${e.role}</span></td>
+      <td>${fmtDate(e.created)}</td>
+      <td>
+        ${e.username!=='admin'?`<button class="btn btn-danger btn-sm" onclick="deleteEmployee(${e.id})">🗑 Delete</button>`:'<span style="color:var(--text-muted);font-size:12px;">Protected</span>'}
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+function filterEmployees(v) { renderEmployees(v); }
+
+function addEmployee() {
+  const name=document.getElementById('emp-name').value.trim();
+  const user=document.getElementById('emp-user').value.trim();
+  const pass=document.getElementById('emp-pass').value.trim();
+  const role=document.getElementById('emp-role').value;
+  if (!name||!user||!pass) { showToast('Fill all fields','error'); return; }
+  const users = DB.get('users') || [];
+  if (users.find(u=>u.username===user)) { showToast('Username already exists','error'); return; }
+  users.push({ id:Date.now(), name, username:user, password:pass, role, created:todayStr() });
+  DB.set('users', users);
+  closeModal('modal-add-employee');
+  renderEmployees();
+  showToast('Employee added!');
+  ['emp-name','emp-user','emp-pass'].forEach(id => document.getElementById(id).value='');
+}
+
+function deleteEmployee(id) {
+  if (!confirm('Delete this employee?')) return;
+  let users = DB.get('users') || [];
+  users = users.filter(u=>u.id!==id);
+  DB.set('users', users);
+  renderEmployees();
+  showToast('Employee deleted','error');
+}
+
+function clearEmployeeForm(prefix='emp') {
+  ['name','user','pass'].forEach(field => {
+    const el = document.getElementById(`${prefix}-${field}`);
+    if (el) el.value = '';
+  });
+  const role = document.getElementById(`${prefix}-role`);
+  if (role) role.value = 'Staff';
+}
+
+function openEditEmployee(id) {
+  const users = DB.get('users') || [];
+  const employee = users.find(u => u.id === id);
+  if (!employee) {
+    showToast('Employee not found','error');
+    return;
+  }
+  editingEmployeeId = id;
+  document.getElementById('edit-emp-name').value = employee.name;
+  document.getElementById('edit-emp-user').value = employee.username;
+  document.getElementById('edit-emp-pass').value = employee.password;
+  document.getElementById('edit-emp-role').value = employee.role;
+  openModal('modal-edit-employee');
+}
+
+async function syncUsers(users) {
+  const saved = await DB.set('users', users);
+  if (!saved) return false;
+  renderEmployees();
+  return true;
+}
+
+function renderEmployees(filter='') {
+  let data = DB.get('users') || [];
+  if (filter) data = data.filter(e => e.name.toLowerCase().includes(filter.toLowerCase()) || e.username.includes(filter));
+  document.getElementById('emp-total-card').textContent = data.length;
+  document.getElementById('emp-admin-card').textContent = data.filter(e => e.role === 'Admin').length;
+  document.getElementById('emp-staff-card').textContent = data.filter(e => e.role === 'Staff').length;
+  document.getElementById('emp-count').textContent = '('+data.length+')';
+  const tbody = document.getElementById('employees-tbody');
+  tbody.innerHTML = data.length ? '' : '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text-muted);">No employee accounts found</td></tr>';
+  data.forEach(e => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td style="font-weight:600;">${e.name}</td>
+      <td><span style="font-family:var(--mono);font-size:12px;background:var(--bg);padding:2px 7px;border-radius:4px;">@${e.username}</span></td>
+      <td><span class="badge badge-${e.role.toLowerCase()}">${e.role}</span></td>
+      <td>${fmtDate(e.created)}</td>
+      <td><span class="badge" style="background:var(--accent-light);color:#047857;">Enabled</span></td>
+      <td>
+        <button class="btn btn-outline btn-sm" onclick="openEditEmployee(${e.id})">Edit</button>
+        ${e.username!=='admin'?`<button class="btn btn-danger btn-sm" onclick="deleteEmployee(${e.id})" style="margin-left:4px;">Delete</button>`:'<span style="color:var(--text-muted);font-size:12px;margin-left:8px;">Protected</span>'}
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function filterEmployees(v) { renderEmployees(v); }
+
+async function addEmployee() {
+  const name=document.getElementById('emp-name').value.trim();
+  const user=document.getElementById('emp-user').value.trim();
+  const pass=document.getElementById('emp-pass').value.trim();
+  const role=document.getElementById('emp-role').value;
+  if (!name||!user||!pass) { showToast('Fill all fields','error'); return; }
+  if (!/^[a-zA-Z0-9._-]{3,20}$/.test(user)) { showToast('Username must be 3-20 letters or numbers','error'); return; }
+  const users = DB.get('users') || [];
+  if (users.find(u=>u.username===user)) { showToast('Username already exists','error'); return; }
+  users.push({ id:Date.now(), name, username:user, password:pass, role, created:todayStr() });
+  const saved = await syncUsers(users);
+  if (!saved) return;
+  closeModal('modal-add-employee');
+  clearEmployeeForm('emp');
+  showToast('Employee added and login created!');
+}
+
+async function updateEmployee() {
+  const name=document.getElementById('edit-emp-name').value.trim();
+  const user=document.getElementById('edit-emp-user').value.trim();
+  const pass=document.getElementById('edit-emp-pass').value.trim();
+  const role=document.getElementById('edit-emp-role').value;
+  if (!name||!user||!pass) { showToast('Fill all fields','error'); return; }
+  if (!/^[a-zA-Z0-9._-]{3,20}$/.test(user)) { showToast('Username must be 3-20 letters or numbers','error'); return; }
+  const users = DB.get('users') || [];
+  const index = users.findIndex(u => u.id === editingEmployeeId);
+  if (index === -1) { showToast('Employee not found','error'); return; }
+  if (users.some(u => u.username === user && u.id !== editingEmployeeId)) { showToast('Username already exists','error'); return; }
+  users[index] = { ...users[index], name, username:user, password:pass, role };
+  const saved = await syncUsers(users);
+  if (!saved) return;
+  if (currentUser && currentUser.id === editingEmployeeId) {
+    currentUser = { ...users[index] };
+    initUI();
+  }
+  closeModal('modal-edit-employee');
+  showToast('Employee updated successfully!');
+}
+
+async function deleteEmployee(id) {
+  if (!confirm('Delete this employee?')) return;
+  if (currentUser?.id === id) { showToast('You cannot delete the account currently logged in','error'); return; }
+  let users = DB.get('users') || [];
+  users = users.filter(u=>u.id!==id);
+  const saved = await syncUsers(users);
+  if (!saved) return;
+  showToast('Employee deleted','error');
+}
+
+function normalizeEmployee(user) {
+  return {
+    ...user,
+    email: user.email || '',
+    phone: user.phone || '',
+    status: user.status || 'Active',
+  };
+}
+
+function filterEmployees(v) { renderEmployees(v); }
+
+function clearEmployeeForm(prefix='emp') {
+  ['name','email','phone','user','pass'].forEach(field => {
+    const el = document.getElementById(`${prefix}-${field}`);
+    if (el) el.value = '';
+  });
+  const role = document.getElementById(`${prefix}-role`);
+  if (role) role.value = 'Staff';
+}
+
+async function syncUsers(users) {
+  const saved = await DB.set('users', users);
+  if (!saved) return false;
+  renderEmployees();
+  return true;
+}
+
+function renderEmployees(filter='') {
+  let data = (DB.get('users') || []).map(normalizeEmployee);
+  if (filter) {
+    const query = filter.toLowerCase();
+    data = data.filter(e =>
+      e.name.toLowerCase().includes(query) ||
+      e.username.toLowerCase().includes(query) ||
+      e.email.toLowerCase().includes(query) ||
+      e.phone.includes(filter)
+    );
+  }
+  document.getElementById('emp-total-card').textContent = data.length;
+  document.getElementById('emp-admin-card').textContent = data.filter(e => e.role === 'Admin').length;
+  document.getElementById('emp-staff-card').textContent = data.filter(e => e.role === 'Staff').length;
+  document.getElementById('emp-count').textContent = '(' + data.length + ')';
+  const tbody = document.getElementById('employees-tbody');
+  tbody.innerHTML = data.length ? '' : '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-muted);">No employees found</td></tr>';
+  data.forEach(e => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td style="font-weight:600;">${e.name}<div style="font-size:11px;color:var(--text-muted);margin-top:4px;">@${e.username}</div></td>
+      <td>${e.email || '<span style="color:var(--text-muted);">Not set</span>'}</td>
+      <td>${e.phone || '<span style="color:var(--text-muted);">Not set</span>'}</td>
+      <td><span class="badge badge-${e.role.toLowerCase()}">${e.role}</span></td>
+      <td>${fmtDate(e.created)}</td>
+      <td><span class="badge" style="background:var(--accent-light);color:#047857;">${e.status}</span></td>
+      <td>
+        <button class="btn btn-outline btn-sm" onclick="openEditEmployee(${e.id})">Edit</button>
+        ${e.username !== 'admin' ? `<button class="btn btn-danger btn-sm" onclick="deleteEmployee(${e.id})" style="margin-left:4px;">Delete</button>` : '<span style="color:var(--text-muted);font-size:12px;margin-left:8px;">Protected</span>'}
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function openEditEmployee(id) {
+  const users = (DB.get('users') || []).map(normalizeEmployee);
+  const employee = users.find(u => u.id === id);
+  if (!employee) {
+    showToast('Employee not found','error');
+    return;
+  }
+  editingEmployeeId = id;
+  document.getElementById('edit-emp-name').value = employee.name;
+  document.getElementById('edit-emp-email').value = employee.email;
+  document.getElementById('edit-emp-phone').value = employee.phone;
+  document.getElementById('edit-emp-user').value = employee.username;
+  document.getElementById('edit-emp-pass').value = employee.password;
+  document.getElementById('edit-emp-role').value = employee.role;
+  openModal('modal-edit-employee');
+}
+
+async function addEmployee() {
+  const name = document.getElementById('emp-name').value.trim();
+  const email = document.getElementById('emp-email').value.trim();
+  const phone = document.getElementById('emp-phone').value.trim();
+  const user = document.getElementById('emp-user').value.trim();
+  const pass = document.getElementById('emp-pass').value.trim();
+  const role = document.getElementById('emp-role').value;
+  if (!name || !user || !pass) { showToast('Fill all required fields','error'); return; }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('Enter a valid email','error'); return; }
+  if (phone && !/^\d{10}$/.test(phone)) { showToast('Phone should be 10 digits','error'); return; }
+  if (!/^[a-zA-Z0-9._-]{3,20}$/.test(user)) { showToast('Username must be 3-20 letters or numbers','error'); return; }
+  const users = (DB.get('users') || []).map(normalizeEmployee);
+  if (users.find(u => u.username.toLowerCase() === user.toLowerCase())) { showToast('Username already exists','error'); return; }
+  users.push({ id: Date.now(), name, email, phone, username: user, password: pass, role, created: todayStr(), status: 'Active' });
+  const saved = await syncUsers(users);
+  if (!saved) return;
+  closeModal('modal-add-employee');
+  clearEmployeeForm('emp');
+  showToast('Employee added. Login is ready in the database.');
+}
+
+async function updateEmployee() {
+  const name = document.getElementById('edit-emp-name').value.trim();
+  const email = document.getElementById('edit-emp-email').value.trim();
+  const phone = document.getElementById('edit-emp-phone').value.trim();
+  const user = document.getElementById('edit-emp-user').value.trim();
+  const pass = document.getElementById('edit-emp-pass').value.trim();
+  const role = document.getElementById('edit-emp-role').value;
+  if (!name || !user || !pass) { showToast('Fill all required fields','error'); return; }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('Enter a valid email','error'); return; }
+  if (phone && !/^\d{10}$/.test(phone)) { showToast('Phone should be 10 digits','error'); return; }
+  if (!/^[a-zA-Z0-9._-]{3,20}$/.test(user)) { showToast('Username must be 3-20 letters or numbers','error'); return; }
+  const users = (DB.get('users') || []).map(normalizeEmployee);
+  const index = users.findIndex(u => u.id === editingEmployeeId);
+  if (index === -1) { showToast('Employee not found','error'); return; }
+  if (users.some(u => u.username.toLowerCase() === user.toLowerCase() && u.id !== editingEmployeeId)) { showToast('Username already exists','error'); return; }
+  users[index] = { ...users[index], name, email, phone, username: user, password: pass, role, status: 'Active' };
+  const saved = await syncUsers(users);
+  if (!saved) return;
+  if (currentUser && currentUser.id === editingEmployeeId) {
+    currentUser = { ...users[index] };
+    initUI();
+  }
+  closeModal('modal-edit-employee');
+  showToast('Employee updated successfully!');
+}
+
+async function deleteEmployee(id) {
+  if (!confirm('Delete this employee?')) return;
+  if (currentUser?.id === id) { showToast('You cannot delete the account currently logged in','error'); return; }
+  let users = (DB.get('users') || []).map(normalizeEmployee);
+  users = users.filter(u => u.id !== id);
+  const saved = await syncUsers(users);
+  if (!saved) return;
+  showToast('Employee deleted','error');
+}
+
+// ===================== FINANCE =====================
+let finBarChart, finLineChart, finPieChart;
+function renderFinance() {
+  const ships = DB.get('shipments') || [];
+  const today = todayStr();
+  const todayShips = ships.filter(s=>s.date===today);
+  const yesterdayShips = ships.filter(s=>s.date===todayMinus(1));
+
+  const todayDtdc = todayShips.filter(s=>s.courier==='DTDC');
+  const todayTrac = todayShips.filter(s=>s.courier==='Trackon');
+  const yestProfit = yesterdayShips.reduce((sum, ship) => sum + getShipmentFinance(ship).profit, 0);
+
+  const dtdcProfit = todayDtdc.reduce((sum, ship) => sum + getShipmentFinance(ship).profit, 0);
+  const tracProfit = todayTrac.reduce((sum, ship) => sum + getShipmentFinance(ship).profit, 0);
+  const totalProfit = dtdcProfit + tracProfit;
+  const dtdcPay = todayDtdc.reduce((sum, ship) => sum + getShipmentFinance(ship).courierCost, 0);
+  const tracPay = todayTrac.reduce((sum, ship) => sum + getShipmentFinance(ship).courierCost, 0);
+  const pctChange = yestProfit ? Math.round((totalProfit-yestProfit)/Math.abs(yestProfit)*100) : (totalProfit ? 100 : 0);
+
+  document.getElementById('fin-total-profit').textContent = '₹'+totalProfit.toLocaleString('en-IN');
+  document.getElementById('fin-dtdc-profit').textContent = '₹'+dtdcProfit.toLocaleString('en-IN');
+  document.getElementById('fin-trac-profit').textContent = '₹'+tracProfit.toLocaleString('en-IN');
+  document.getElementById('fin-dtdc-pay').textContent = '₹'+dtdcPay.toLocaleString('en-IN');
+  document.getElementById('fin-trac-pay').textContent = '₹'+tracPay.toLocaleString('en-IN');
+  document.getElementById('fin-compare').textContent = (pctChange>=0?'+':'')+pctChange+'%';
+  document.getElementById('fin-compare').style.color = pctChange>=0?'var(--success)':'var(--danger)';
+
+  const pct = (todayDtdc.length + todayTrac.length) ? Math.round(todayDtdc.length/(todayDtdc.length+todayTrac.length)*100) : 50;
+  document.getElementById('fin-dtdc-pct').textContent = pct+'%';
+  document.getElementById('fin-trac-pct').textContent = (100-pct)+'%';
+  document.getElementById('fin-dtdc-bar').style.width = pct+'%';
+  document.getElementById('fin-trac-bar').style.width = (100-pct)+'%';
+
+  if (!hasCharts()) {
+    renderChartFallback('finBarChart', 'Finance charts are unavailable offline until Chart.js is stored locally.');
+    renderChartFallback('finLineChart', 'Finance charts are unavailable offline until Chart.js is stored locally.');
+    renderChartFallback('finPieChart', 'Finance charts are unavailable offline until Chart.js is stored locally.');
+    return;
+  }
+  clearChartFallback('finBarChart');
+  clearChartFallback('finLineChart');
+  clearChartFallback('finPieChart');
+
+  // Bar chart - last 7 days profit
+  const days = [];
+  const profitData = [];
+  for (let i=6;i>=0;i--) {
+    const d = todayMinus(i);
+    const dayShips = ships.filter(s=>s.date===d);
+    days.push(new Date(d+'T00:00:00').toLocaleDateString('en-IN',{weekday:'short'}));
+    profitData.push(dayShips.reduce((sum, ship) => sum + getShipmentFinance(ship).profit, 0));
+  }
+
+  if (finBarChart) finBarChart.destroy();
+  finBarChart = new Chart(document.getElementById('finBarChart'), {
+    type:'bar',
+    data:{ labels:days, datasets:[{ label:'Profit', data:profitData, backgroundColor:'rgba(16,185,129,0.75)', borderRadius:6, borderSkipped:false }] },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:false } },
+      scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>'₹'+v, font:{size:10} } }, x:{ ticks:{ font:{size:10} } } }
+    }
+  });
+
+  if (finLineChart) finLineChart.destroy();
+  finLineChart = new Chart(document.getElementById('finLineChart'), {
+    type:'line',
+    data:{ labels:days, datasets:[{ label:'Profit Trend', data:profitData, borderColor:'#1a6ef5', backgroundColor:'rgba(26,110,245,0.08)', fill:true, tension:0.4 }] },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:false } },
+      scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>'₹'+v, font:{size:10} } }, x:{ ticks:{ font:{size:10} } } }
+    }
+  });
+
+  if (finPieChart) finPieChart.destroy();
+  finPieChart = new Chart(document.getElementById('finPieChart'), {
+    type:'doughnut',
+    data:{ labels:['DTDC Profit','Trackon Profit'], datasets:[{ data:[dtdcProfit||1, tracProfit||1], backgroundColor:['#e67e22','#1a6ef5'], borderWidth:0 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } }, cutout:'60%' }
+  });
+}
+function filterFinance(period) {
+  showToast('Showing '+period+' finance data');
+  renderFinance();
+}
+
+// ===================== CALCULATOR =====================
+const domesticStates = [
+  'Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat','Haryana',
+  'Himachal Pradesh','Jharkhand','Karnataka','Kerala','Madhya Pradesh','Maharashtra','Manipur',
+  'Meghalaya','Mizoram','Nagaland','Odisha','Punjab','Rajasthan','Sikkim','Tamil Nadu','Telangana',
+  'Tripura','Uttar Pradesh','Uttarakhand','West Bengal','Andaman and Nicobar Islands','Chandigarh',
+  'Dadra and Nagar Haveli and Daman and Diu','Delhi','Jammu and Kashmir','Ladakh','Lakshadweep','Puducherry'
+];
+
+const countries = [
+  'Afghanistan','Albania','Algeria','Andorra','Angola','Antigua and Barbuda','Argentina','Armenia','Australia','Austria',
+  'Azerbaijan','Bahamas','Bahrain','Bangladesh','Barbados','Belarus','Belgium','Belize','Benin','Bhutan','Bolivia',
+  'Bosnia and Herzegovina','Botswana','Brazil','Brunei','Bulgaria','Burkina Faso','Burundi','Cabo Verde','Cambodia',
+  'Cameroon','Canada','Central African Republic','Chad','Chile','China','Colombia','Comoros','Congo','Costa Rica',
+  'Croatia','Cuba','Cyprus','Czech Republic','Democratic Republic of the Congo','Denmark','Djibouti','Dominica',
+  'Dominican Republic','Ecuador','Egypt','El Salvador','Equatorial Guinea','Eritrea','Estonia','Eswatini','Ethiopia',
+  'Fiji','Finland','France','Gabon','Gambia','Georgia','Germany','Ghana','Greece','Grenada','Guatemala','Guinea',
+  'Guinea-Bissau','Guyana','Haiti','Honduras','Hungary','Iceland','India','Indonesia','Iran','Iraq','Ireland','Israel',
+  'Italy','Jamaica','Japan','Jordan','Kazakhstan','Kenya','Kiribati','Kuwait','Kyrgyzstan','Laos','Latvia','Lebanon',
+  'Lesotho','Liberia','Libya','Liechtenstein','Lithuania','Luxembourg','Madagascar','Malawi','Malaysia','Maldives',
+  'Mali','Malta','Marshall Islands','Mauritania','Mauritius','Mexico','Micronesia','Moldova','Monaco','Mongolia',
+  'Montenegro','Morocco','Mozambique','Myanmar','Namibia','Nauru','Nepal','Netherlands','New Zealand','Nicaragua',
+  'Niger','Nigeria','North Korea','North Macedonia','Norway','Oman','Pakistan','Palau','Panama','Papua New Guinea',
+  'Paraguay','Peru','Philippines','Poland','Portugal','Qatar','Romania','Russia','Rwanda','Saint Kitts and Nevis',
+  'Saint Lucia','Saint Vincent and the Grenadines','Samoa','San Marino','Sao Tome and Principe','Saudi Arabia','Senegal',
+  'Serbia','Seychelles','Sierra Leone','Singapore','Slovakia','Slovenia','Solomon Islands','Somalia','South Africa',
+  'South Korea','South Sudan','Spain','Sri Lanka','Sudan','Suriname','Sweden','Switzerland','Syria','Taiwan',
+  'Tajikistan','Tanzania','Thailand','Timor-Leste','Togo','Tonga','Trinidad and Tobago','Tunisia','Turkey','Turkmenistan',
+  'Tuvalu','Uganda','Ukraine','United Arab Emirates','United Kingdom','United States','Uruguay','Uzbekistan','Vanuatu',
+  'Vatican City','Venezuela','Vietnam','Yemen','Zambia','Zimbabwe'
+];
+
+const domesticAreaMap = {
+  Local: ['Delhi'],
+  'Within State': ['Chandigarh','Puducherry','Lakshadweep','Andaman and Nicobar Islands','Dadra and Nagar Haveli and Daman and Diu'],
+  'Metro Cities': ['Delhi','Maharashtra','Karnataka','Tamil Nadu','Telangana','West Bengal'],
+  'North India': ['Haryana','Punjab','Rajasthan','Uttar Pradesh','Uttarakhand','Himachal Pradesh','Jammu and Kashmir','Ladakh','Chandigarh'],
+  'South India': ['Andhra Pradesh','Karnataka','Kerala','Tamil Nadu','Telangana','Puducherry'],
+  'East India': ['Bihar','Jharkhand','Odisha','West Bengal','Sikkim','Assam','Arunachal Pradesh','Manipur','Meghalaya','Mizoram','Nagaland','Tripura'],
+  'West India': ['Gujarat','Goa','Madhya Pradesh','Maharashtra','Chhattisgarh','Dadra and Nagar Haveli and Daman and Diu']
+};
+
+const domesticPricing = {
+  Local: { trackon: 95, dtdc: 100 },
+  'Within State': { trackon: 95, dtdc: 100 },
+  'Metro Cities': { trackon: 145, dtdc: 150 },
+  'North India': { trackon: 95, dtdc: 100 },
+  'South India': { trackon: 175, dtdc: 180 },
+  'East India': { trackon: 245, dtdc: 250 },
+  'West India': { trackon: 245, dtdc: 250 }
+};
+
+const DTDC_MARGIN_PERCENT = 70;
+
+const restrictedGoodsRules = [
+  { label: 'Batteries', keywords: ['battery', 'batteries', 'lithium', 'wet cell', 'power bank', 'used battery'] },
+  { label: 'Fuel Items', keywords: ['fuel', 'gasoline', 'butane', 'propane', 'lighter', 'lighters', 'camp stove', 'camp stoves'] },
+  { label: 'Perfumes / Gas Cans', keywords: ['perfume', 'aftershave', 'cologne', 'compressed gas', 'gas cylinder', 'gas can'] },
+  { label: 'Cosmetics', keywords: ['cosmetic', 'nail polish', 'nail remover', 'astringent'] },
+  { label: 'Aerosols', keywords: ['aerosol', 'spray paint', 'hairspray'] },
+  { label: 'Precious Metals', keywords: ['gold', 'silver', 'precious metal'] },
+  { label: 'Mercury Items', keywords: ['mercury', 'thermometer', 'cfl'] },
+  { label: 'Cleaning Supplies', keywords: ['ammonia', 'bleach', 'cleaning chemical'] },
+  { label: 'Solvents', keywords: ['solvent', 'turpentine', 'acetone', 'mineral spirit'] },
+  { label: 'Paints / Thinners', keywords: ['paint', 'paint thinner', 'thinner'] },
+  { label: 'Pesticides', keywords: ['pesticide', 'herbicide', 'rodenticide', 'flea collar'] },
+  { label: 'Pool Chemicals', keywords: ['pool chemical'] },
+  { label: 'Alcohol Products', keywords: ['alcohol', 'liquor', 'spirit'] },
+  { label: 'Medicines / Pharma', keywords: ['medicine', 'medicines', 'medical supply', 'medical supplies', 'tablet', 'tablets', 'capsule', 'capsules', 'syrup', 'injection', 'pharma', 'pharmaceutical', 'drug'] },
+  { label: 'Live Animals / Bones', keywords: ['live animal', 'animal', 'human skull', 'bones', 'bone'] },
+  { label: 'Weapons / Ammunition', keywords: ['weapon', 'weapons', 'arms', 'ammunition', 'sword', 'swords'] },
+  { label: 'Dry Ice', keywords: ['dry ice'] },
+  { label: 'Fire Crackers / Match Box', keywords: ['match box', 'fire cracker', 'firecrackers', 'cracker'] },
+  { label: 'Dried Coconut', keywords: ['copra', 'dried coconut'] },
+  { label: 'Narcotic Substances', keywords: ['narcotic', 'ndps', 'drugs'] }
+];
+
+const dtdcZoneMap = {
+  nearby: ['Punjab', 'Haryana', 'Himachal Pradesh', 'Chandigarh'],
+  delhiNcr: ['Delhi'],
+  jammuSrinagar: ['Jammu and Kashmir', 'Ladakh'],
+  restNorth: ['Rajasthan', 'Uttar Pradesh', 'Uttarakhand'],
+  metros: ['Maharashtra', 'Gujarat', 'Karnataka', 'Tamil Nadu', 'Telangana'],
+  east: ['Bihar', 'Jharkhand', 'Odisha', 'West Bengal'],
+  south: ['Kerala', 'Andhra Pradesh', 'Goa', 'Puducherry', 'Lakshadweep'],
+  northEast: ['Sikkim', 'Assam', 'Arunachal Pradesh', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Tripura', 'Andaman and Nicobar Islands']
+};
+
+const dtdcZoneLabels = {
+  nearby: 'Punjab / Haryana / Himachal',
+  delhiNcr: 'Delhi NCR',
+  jammuSrinagar: 'Jammu / Srinagar Sector',
+  restNorth: 'Rest of North',
+  metros: 'Metro Belt',
+  east: 'East Belt',
+  south: 'South Belt',
+  northEast: 'North East'
+};
+
+const dtdcSeriesConfig = {
+  'T Series': {
+    transport: 'Air / Express',
+    basis: 'half-kg',
+    minWeight: 1,
+    maxWeight: 5.5,
+    rates: {
+      nearby: { base: 28, step: 16 },
+      delhiNcr: { base: 32, step: 14 },
+      jammuSrinagar: { base: 32, step: 18 },
+      restNorth: { base: 33, step: 16 },
+      metros: { base: 54, step: 79 },
+      east: { base: 58, step: 82 },
+      south: { base: 54, step: 76 },
+      northEast: { base: 97, step: 95 }
+    }
+  },
+  'D Series': {
+    transport: 'Road Only',
+    basis: 'per-kg',
+    minWeight: 1,
+    rates: {
+      nearby: { base: 111, step: 82 },
+      delhiNcr: { base: 182, step: 71 },
+      jammuSrinagar: { base: 178, step: 63 },
+      restNorth: { base: 206, step: 82 },
+      metros: { base: 364, step: 109 },
+      east: { base: 286, step: 114 },
+      south: { base: 364, step: 109 },
+      northEast: { base: 482, step: 123 }
+    }
+  },
+  'D3 Air Series': {
+    transport: 'Air Priority',
+    basis: 'per-kg',
+    minWeight: 1,
+    rates: {
+      nearby: { base: 290, step: 171 },
+      delhiNcr: { base: 401, step: 139 },
+      jammuSrinagar: { base: 290, step: 171 },
+      restNorth: { base: 407, step: 132 },
+      metros: { base: 401, step: 139 },
+      east: { base: 407, step: 132 },
+      south: { base: 504, step: 145 },
+      northEast: { base: 565, step: 159 }
+    }
+  }
+};
+
+const internationalCountryGroups = {
+  'Asia Pacific': ['Afghanistan','Australia','Bangladesh','Bhutan','Brunei','Cambodia','China','Fiji','Hong Kong','Indonesia','Japan','Kiribati','Laos','Malaysia','Maldives','Marshall Islands','Micronesia','Mongolia','Myanmar','Nauru','Nepal','New Zealand','North Korea','Pakistan','Palau','Papua New Guinea','Philippines','Samoa','Singapore','Solomon Islands','South Korea','Sri Lanka','Taiwan','Thailand','Timor-Leste','Tonga','Tuvalu','Vanuatu','Vietnam'],
+  'Middle East & Africa': ['Algeria','Angola','Bahrain','Benin','Botswana','Burkina Faso','Burundi','Cameroon','Cape Verde','Central African Republic','Chad','Comoros','Congo','Democratic Republic of the Congo','Djibouti','Egypt','Equatorial Guinea','Eritrea','Eswatini','Ethiopia','Gabon','Gambia','Ghana','Guinea','Guinea-Bissau','Iran','Iraq','Israel','Ivory Coast','Jordan','Kenya','Kuwait','Lebanon','Lesotho','Liberia','Libya','Madagascar','Malawi','Mali','Mauritania','Mauritius','Morocco','Mozambique','Namibia','Niger','Nigeria','Oman','Qatar','Rwanda','Saudi Arabia','Senegal','Seychelles','Sierra Leone','Somalia','South Africa','South Sudan','Sudan','Syria','Tanzania','Togo','Tunisia','Turkey','Uganda','United Arab Emirates','Yemen','Zambia','Zimbabwe'],
+  Europe: ['Albania','Andorra','Armenia','Austria','Azerbaijan','Belarus','Belgium','Bosnia and Herzegovina','Bulgaria','Croatia','Cyprus','Czech Republic','Denmark','Estonia','Finland','France','Georgia','Germany','Greece','Hungary','Iceland','Ireland','Italy','Kazakhstan','Kosovo','Kyrgyzstan','Latvia','Liechtenstein','Lithuania','Luxembourg','Malta','Moldova','Monaco','Montenegro','Netherlands','North Macedonia','Norway','Poland','Portugal','Romania','Russia','San Marino','Serbia','Slovakia','Slovenia','Spain','Sweden','Switzerland','Tajikistan','Turkmenistan','Ukraine','United Kingdom','Uzbekistan','Vatican City'],
+  'North America': ['Antigua and Barbuda','Bahamas','Barbados','Belize','Canada','Costa Rica','Cuba','Dominica','Dominican Republic','El Salvador','Grenada','Guatemala','Haiti','Honduras','Jamaica','Mexico','Nicaragua','Panama','Saint Kitts and Nevis','Saint Lucia','Saint Vincent and the Grenadines','Trinidad and Tobago','United States'],
+  'South America': ['Argentina','Bolivia','Brazil','Chile','Colombia','Ecuador','Guyana','Paraguay','Peru','Suriname','Uruguay','Venezuela']
+};
+
+const internationalPricing = {
+  'Asia Pacific': { parcel: { trackon: 820, dtdc: 860 }, document: { trackon: 650, dtdc: 720 } },
+  'Middle East & Africa': { parcel: { trackon: 980, dtdc: 1040 }, document: { trackon: 760, dtdc: 820 } },
+  Europe: { parcel: { trackon: 1180, dtdc: 1240 }, document: { trackon: 840, dtdc: 920 } },
+  'North America': { parcel: { trackon: 1320, dtdc: 1390 }, document: { trackon: 940, dtdc: 1020 } },
+  'South America': { parcel: { trackon: 1460, dtdc: 1540 }, document: { trackon: 1020, dtdc: 1100 } }
+};
+
+function populateCalcOptions() {
+  const stateSelect = document.getElementById('calc-state');
+  const countrySelect = document.getElementById('calc-country');
+  const shipStateSelect = document.getElementById('ship-state');
+  const shipCountrySelect = document.getElementById('ship-country');
+  const stateOptions = '<option value="">Select state / union territory</option>' +
+    domesticStates.map(state => `<option value="${state}">${state}</option>`).join('');
+  const countryOptions = '<option value="">Select country</option>' +
+    countries.map(country => `<option value="${country}">${country}</option>`).join('');
+  if (stateSelect) stateSelect.innerHTML = stateOptions;
+  if (countrySelect) countrySelect.innerHTML = countryOptions;
+  if (shipStateSelect) shipStateSelect.innerHTML = stateOptions;
+  if (shipCountrySelect) shipCountrySelect.innerHTML = countryOptions;
+}
+
+function toggleShipmentMode() {
+  const mode = document.getElementById('ship-mode')?.value || 'domestic';
+  const domesticGroup = document.getElementById('ship-domestic-group');
+  const internationalGroup = document.getElementById('ship-international-group');
+  if (domesticGroup) domesticGroup.style.display = mode === 'domestic' ? '' : 'none';
+  if (internationalGroup) internationalGroup.style.display = mode === 'international' ? '' : 'none';
+  updateShipmentRatePreview();
+}
+
+function toggleCalcMode() {
+  const mode = document.querySelector('input[name="calc-mode"]:checked')?.value || 'domestic';
+  document.getElementById('calc-domestic-group').style.display = mode === 'domestic' ? '' : 'none';
+  document.getElementById('calc-international-group').style.display = mode === 'international' ? '' : 'none';
+  document.getElementById('calc-mode-badge').textContent = mode === 'domestic' ? 'Domestic' : 'International';
+  hideCalcError();
+}
+
+function showCalcError(message) {
+  const el = document.getElementById('calc-error');
+  el.textContent = message;
+  el.style.display = 'block';
+}
+
+function hideCalcError() {
+  const el = document.getElementById('calc-error');
+  el.textContent = '';
+  el.style.display = 'none';
+}
+
+function getDomesticArea(state) {
+  if (domesticAreaMap.Local.includes(state)) return 'Local';
+  if (domesticAreaMap['Within State'].includes(state)) return 'Within State';
+  if (domesticAreaMap['Metro Cities'].includes(state)) return 'Metro Cities';
+  if (domesticAreaMap['North India'].includes(state)) return 'North India';
+  if (domesticAreaMap['South India'].includes(state)) return 'South India';
+  if (domesticAreaMap['East India'].includes(state)) return 'East India';
+  if (domesticAreaMap['West India'].includes(state)) return 'West India';
+  return 'North India';
+}
+
+function getInternationalArea(country) {
+  for (const [area, list] of Object.entries(internationalCountryGroups)) {
+    if (list.includes(country)) return area;
+  }
+  return 'Asia Pacific';
+}
+
+function getDiscount(weight) {
+  let discount = 0;
+  if (weight > 5) discount += 5;
+  if (weight > 10) discount += 5;
+  if (weight > 15) discount += 5;
+  if (weight > 20) discount += 5;
+  if (weight > 25) discount += 5;
+  if (weight > 30) discount += 10;
+  return discount;
+}
+
+const destinationAliases = {
+  up: 'Uttar Pradesh',
+  'u p': 'Uttar Pradesh',
+  'u.p': 'Uttar Pradesh',
+  'u.p.': 'Uttar Pradesh',
+  mumbai: 'Maharashtra',
+  maharashtra: 'Maharashtra',
+  delhi: 'Delhi',
+  bangalore: 'Karnataka',
+  bengaluru: 'Karnataka',
+  chennai: 'Tamil Nadu',
+  hyderabad: 'Telangana',
+  kolkata: 'West Bengal',
+  ahmedabad: 'Gujarat',
+  jaipur: 'Rajasthan'
+};
+
+function normalizeDestinationText(value) {
+  return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function resolveDomesticDestination(destination) {
+  const normalized = normalizeDestinationText(destination);
+  if (!normalized) return 'Delhi';
+  if (destinationAliases[normalized]) return destinationAliases[normalized];
+  const state = domesticStates.find(item => normalized.includes(normalizeDestinationText(item)));
+  return state || destination;
+}
+
+function detectRestrictedGoods(goodsType, goodsDescription) {
+  const combined = normalizeDestinationText(`${goodsType || ''} ${goodsDescription || ''}`);
+  const matches = restrictedGoodsRules
+    .filter(rule => rule.keywords.some(keyword => combined.includes(normalizeDestinationText(keyword))))
+    .map(rule => rule.label);
+
+  return {
+    isRestricted: matches.length > 0,
+    matches,
+    summary: matches.length ? matches.join(', ') : 'General goods'
+  };
+}
+
+function getDtdcZone(destination) {
+  for (const [zoneKey, states] of Object.entries(dtdcZoneMap)) {
+    if (states.includes(destination)) return zoneKey;
+  }
+  return 'restNorth';
+}
+
+function calculateHalfKgSeries(rateCard, weight) {
+  const billedWeight = Math.max(rateCard.minWeight || 1, Math.ceil(weight * 2) / 2);
+  if (billedWeight <= 1) return { billedWeight, payable: rateCard.base };
+  const steps = Math.round((billedWeight - 1) / 0.5);
+  return {
+    billedWeight,
+    payable: rateCard.base + (steps * rateCard.step)
+  };
+}
+
+function calculatePerKgSeries(rateCard, weight) {
+  const billedWeight = Math.max(rateCard.minWeight || 1, Math.ceil(weight));
+  return {
+    billedWeight,
+    payable: rateCard.base + (Math.max(0, billedWeight - 1) * rateCard.step)
+  };
+}
+
+function getDtdcRateQuote({ mode='domestic', destination, type='parcel', weight, goodsType='', goodsDescription='' }) {
+  if (mode !== 'domestic') {
+    const areaName = getInternationalArea(destination);
+    const pricing = internationalPricing[areaName][type];
+    const payable = type === 'document'
+      ? pricing.dtdc
+      : Math.max((pricing.dtdc * weight) - getDiscount(weight), 0);
+    const selling = Math.round(payable * (1 + (DTDC_MARGIN_PERCENT / 100)));
+    return {
+      payable: Math.round(payable),
+      selling,
+      margin: Math.max(0, selling - Math.round(payable)),
+      service: 'International Network',
+      transport: 'Air / International',
+      billedWeight: `${Math.max(weight, 0).toFixed(1)} kg`,
+      zoneLabel: areaName,
+      restricted: false,
+      matches: []
+    };
+  }
+
+  const resolvedDestination = resolveDomesticDestination(destination);
+  const zoneKey = getDtdcZone(resolvedDestination);
+  const goodsReview = detectRestrictedGoods(goodsType, goodsDescription);
+
+  if (type === 'document') {
+    const payable = 120;
+    const selling = Math.round(payable * (1 + (DTDC_MARGIN_PERCENT / 100)));
+    return {
+      payable,
+      selling,
+      margin: selling - payable,
+      service: goodsReview.isRestricted ? 'D Series' : 'T Series',
+      transport: goodsReview.isRestricted ? 'Road Only' : 'Document Express',
+      billedWeight: `${Math.max(weight, 0).toFixed(1)} kg`,
+      zoneLabel: dtdcZoneLabels[zoneKey] || resolvedDestination,
+      restricted: goodsReview.isRestricted,
+      matches: goodsReview.matches
+    };
+  }
+
+  const serviceName = goodsReview.isRestricted
+    ? 'D Series'
+    : (weight > 5.5 ? 'D3 Air Series' : 'T Series');
+  const serviceConfig = dtdcSeriesConfig[serviceName];
+  const rateCard = serviceConfig.rates[zoneKey] || serviceConfig.rates.restNorth;
+  const calc = serviceConfig.basis === 'half-kg'
+    ? calculateHalfKgSeries({ ...rateCard, minWeight: serviceConfig.minWeight }, weight)
+    : calculatePerKgSeries({ ...rateCard, minWeight: serviceConfig.minWeight }, weight);
+  const payable = Math.round(calc.payable);
+  const selling = Math.round(payable * (1 + (DTDC_MARGIN_PERCENT / 100)));
+
+  return {
+    payable,
+    selling,
+    margin: selling - payable,
+    service: serviceName,
+    transport: goodsReview.isRestricted ? 'Road Only' : serviceConfig.transport,
+    billedWeight: `${calc.billedWeight} kg`,
+    zoneLabel: dtdcZoneLabels[zoneKey] || resolvedDestination,
+    restricted: goodsReview.isRestricted,
+    matches: goodsReview.matches
+  };
+}
+
+function getRateQuote({ mode='domestic', destination, type='parcel', weight, goodsType='', goodsDescription='' }) {
+  const numericWeight = parseFloat(weight);
+  const safeWeight = Number.isFinite(numericWeight) && numericWeight > 0 ? numericWeight : 0;
+  let areaName = '';
+  let trackonRate = 0;
+  let discount = 0;
+  let resolvedDestination = destination;
+  const dtdcQuote = getDtdcRateQuote({ mode, destination, type, weight: safeWeight, goodsType, goodsDescription });
+
+  if (mode === 'domestic') {
+    resolvedDestination = resolveDomesticDestination(destination);
+    areaName = getDomesticArea(resolvedDestination);
+    if (type === 'document') {
+      trackonRate = 100;
+    } else {
+      const pricing = domesticPricing[areaName] || domesticPricing['North India'];
+      discount = getDiscount(safeWeight);
+      trackonRate = Math.max(pricing.trackon * safeWeight - discount, 0);
+    }
+  } else {
+    areaName = getInternationalArea(destination);
+    const pricing = internationalPricing[areaName][type];
+    if (type === 'document') {
+      trackonRate = pricing.trackon;
+    } else {
+      discount = getDiscount(safeWeight);
+      trackonRate = Math.max(pricing.trackon * safeWeight - discount, 0);
+    }
+  }
+
+  return {
+    areaName,
+    destination: resolvedDestination,
+    discount: Math.round(discount),
+    dtdcRate: dtdcQuote.selling,
+    dtdcPayable: dtdcQuote.payable,
+    dtdcSelling: dtdcQuote.selling,
+    dtdcMargin: dtdcQuote.margin,
+    dtdcService: dtdcQuote.service,
+    dtdcTransport: dtdcQuote.transport,
+    dtdcBilledWeight: dtdcQuote.billedWeight,
+    restrictedGoods: dtdcQuote.restricted,
+    restrictedMatches: dtdcQuote.matches,
+    trackonRate: Math.round(trackonRate)
+  };
+}
+
+function getShipmentRateInfo({ mode='domestic', destination, weight, courier, goodsType='', goodsDescription='' }) {
+  const quote = getRateQuote({ mode, destination, type:'parcel', weight, goodsType, goodsDescription });
+  const courierRate = courier === 'DTDC' ? quote.dtdcPayable : quote.trackonRate;
+  const suggestedCustomerRate = courier === 'DTDC' ? quote.dtdcSelling : quote.trackonRate;
+  return { ...quote, courierRate, suggestedCustomerRate };
+}
+
+function getShipmentFinance(ship) {
+  const rateInfo = getShipmentRateInfo({ ...ship, mode: ship.mode || 'domestic' });
+  const courierCost = Number.isFinite(parseFloat(ship.courierRate)) ? Math.round(parseFloat(ship.courierRate)) : rateInfo.courierRate;
+  const customerCharge = Number.isFinite(parseFloat(ship.customerRate)) ? Math.round(parseFloat(ship.customerRate)) : courierCost;
+  return {
+    courierCost,
+    customerCharge,
+    profit: Math.round(customerCharge - courierCost)
+  };
+}
+
+function calculateRate() {
+  const mode = document.querySelector('input[name="calc-mode"]:checked')?.value || 'domestic';
+  const destination = mode === 'domestic'
+    ? document.getElementById('calc-state').value
+    : document.getElementById('calc-country').value;
+  const type = document.getElementById('calc-type').value;
+  const weight = parseFloat(document.getElementById('calc-weight').value);
+
+  hideCalcError();
+
+  if (!destination) {
+    showCalcError(mode === 'domestic' ? 'Please select a destination state or union territory.' : 'Please select a destination country.');
+    return;
+  }
+  if (!weight || weight <= 0) {
+    showCalcError('Please enter a valid shipment weight in kilograms.');
+    return;
+  }
+
+  const quote = getRateQuote({ mode, destination, type, weight });
+
+  document.getElementById('calc-area-name').textContent = quote.areaName;
+  document.getElementById('calc-destination-name').textContent = quote.destination;
+  document.getElementById('calc-discount').textContent = '₹' + quote.discount;
+  document.getElementById('calc-dtdc-rate').textContent = '₹' + quote.dtdcRate;
+  document.getElementById('calc-trac-rate').textContent = '₹' + quote.trackonRate;
+  document.getElementById('calc-mode-badge').textContent = mode === 'domestic' ? 'Domestic' : 'International';
+  document.getElementById('calc-note').textContent =
+    type === 'document'
+      ? 'Document pricing is fixed. Weight is kept for booking reference.'
+      : `Parcel pricing is based on ${quote.areaName} slab with a total discount of ₹${quote.discount}.`;
+  document.getElementById('calc-result').style.display = 'block';
+  showToast('Rates calculated!');
+}
+
+function clearCalc() {
+  document.getElementById('calc-state').value = '';
+  document.getElementById('calc-country').value = '';
+  document.getElementById('calc-type').value = 'parcel';
+  document.getElementById('calc-weight').value = '';
+  document.getElementById('calc-result').style.display = 'none';
+  hideCalcError();
+}
+
+function calculateRate() {
+  const mode = document.querySelector('input[name="calc-mode"]:checked')?.value || 'domestic';
+  const destination = mode === 'domestic'
+    ? document.getElementById('calc-state').value
+    : document.getElementById('calc-country').value;
+  const type = document.getElementById('calc-type').value;
+  const weight = parseFloat(document.getElementById('calc-weight').value);
+  const goodsType = document.getElementById('calc-goods-type').value;
+  const goodsDescription = document.getElementById('calc-goods-desc').value.trim();
+  const warningBox = document.getElementById('calc-warning');
+
+  hideCalcError();
+
+  if (!destination) {
+    showCalcError(mode === 'domestic' ? 'Please select a destination state or union territory.' : 'Please select a destination country.');
+    return;
+  }
+  if (!weight || weight <= 0) {
+    showCalcError('Please enter a valid shipment weight in kilograms.');
+    return;
+  }
+
+  const quote = getRateQuote({ mode, destination, type, weight, goodsType, goodsDescription });
+  document.getElementById('calc-area-name').textContent = quote.areaName;
+  document.getElementById('calc-destination-name').textContent = quote.destination;
+  document.getElementById('calc-series-name').textContent = quote.dtdcService;
+  document.getElementById('calc-transport-name').textContent = quote.dtdcTransport;
+  document.getElementById('calc-billed-weight').textContent = quote.dtdcBilledWeight;
+  document.getElementById('calc-margin').textContent = '₹' + quote.dtdcMargin.toLocaleString('en-IN');
+  document.getElementById('calc-dtdc-payable').textContent = '₹' + quote.dtdcPayable.toLocaleString('en-IN');
+  document.getElementById('calc-dtdc-selling').textContent = '₹' + quote.dtdcSelling.toLocaleString('en-IN');
+  document.getElementById('calc-trac-rate').textContent = '₹' + quote.trackonRate.toLocaleString('en-IN');
+  document.getElementById('calc-mode-badge').textContent = mode === 'domestic' ? 'Domestic' : 'International';
+  document.getElementById('calc-note').textContent =
+    mode === 'domestic'
+      ? `DTDC payable is based on the ${quote.dtdcService} slab. Selling price includes a ${DTDC_MARGIN_PERCENT}% margin.`
+      : 'International DTDC and Trackon figures are shown as reference estimates.';
+
+  if (warningBox) {
+    if (quote.restrictedGoods) {
+      warningBox.style.display = 'block';
+      warningBox.innerHTML = `<strong>Restricted goods detected</strong>This item matched: ${escapeHtml(quote.restrictedMatches.join(', '))}. DTDC has been forced to <strong>${escapeHtml(quote.dtdcService)}</strong> for <strong>${escapeHtml(quote.dtdcTransport)}</strong>.`;
+    } else {
+      warningBox.style.display = 'none';
+      warningBox.textContent = '';
+    }
+  }
+
+  document.getElementById('calc-result').style.display = 'block';
+  showToast('Rates calculated!');
+}
+
+function clearCalc() {
+  document.getElementById('calc-state').value = '';
+  document.getElementById('calc-country').value = '';
+  document.getElementById('calc-type').value = 'parcel';
+  document.getElementById('calc-weight').value = '';
+  document.getElementById('calc-goods-type').value = 'General Merchandise';
+  document.getElementById('calc-goods-desc').value = '';
+  document.getElementById('calc-result').style.display = 'none';
+  const warningBox = document.getElementById('calc-warning');
+  if (warningBox) {
+    warningBox.style.display = 'none';
+    warningBox.textContent = '';
+  }
+  hideCalcError();
+}
+
+// ===================== PROFILE =====================
+function saveProfile() {
+  const name = document.getElementById('prof-edit-name').value.trim();
+  if (!name) { showToast('Enter your name','error'); return; }
+  const users = DB.get('users') || [];
+  const i = users.findIndex(u=>u.id===currentUser.id);
+  if (i>-1) { users[i].name=name; DB.set('users',users); }
+  currentUser.name = name;
+  document.getElementById('sb-name').textContent = name;
+  document.getElementById('prof-name').textContent = name;
+  document.getElementById('sb-avatar').textContent = name[0].toUpperCase();
+  document.getElementById('prof-avatar').textContent = name[0].toUpperCase();
+  showToast('Profile updated!');
+}
+
+function changePassword() {
+  const cur = document.getElementById('pass-current').value;
+  const nw = document.getElementById('pass-new').value;
+  const cf = document.getElementById('pass-confirm').value;
+  if (cur !== currentUser.password) { showToast('Current password incorrect','error'); return; }
+  if (nw.length < 6) { showToast('New password must be 6+ characters','error'); return; }
+  if (nw !== cf) { showToast('Passwords do not match','error'); return; }
+  const users = DB.get('users') || [];
+  const i = users.findIndex(u=>u.id===currentUser.id);
+  if (i>-1) { users[i].password=nw; DB.set('users',users); }
+  currentUser.password = nw;
+  ['pass-current','pass-new','pass-confirm'].forEach(id => document.getElementById(id).value='');
+  showToast('Password changed successfully!');
+}
+
+// ===================== INIT =====================
+async function initApp() {
+  await initDB();
+  refreshAuthUI();
+  populateCalcOptions();
+  toggleCalcMode();
+  document.querySelectorAll('[onclick]').forEach(el => {
+    if (el.getAttribute('onclick') === 'openNewQuote()') {
+      el.addEventListener('click', () => setTimeout(initQuoteRows, 10));
+    }
+  });
+}
+
+const appReadyPromise = initApp();
+</script>
+</body>
+</html>
